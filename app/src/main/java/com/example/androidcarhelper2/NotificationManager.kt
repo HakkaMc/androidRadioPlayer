@@ -3,10 +3,10 @@ package com.example.androidcarhelper2
 import android.content.Intent
 
 class NotificationManager private constructor() {
-    companion object{
+    companion object {
         private var instance: NotificationManager? = null
 
-        fun getInstance() = instance ?: synchronized(this){
+        fun getInstance() = instance ?: synchronized(this) {
             instance ?: NotificationManager().also { instance = it }
         }
     }
@@ -15,6 +15,13 @@ class NotificationManager private constructor() {
 
     public fun sendNotificationMessage(message: Intent) {
         notificationLiveData.sendNotification(message)
+    }
+
+    public fun sendNotificationMessage(from: String, messageName: String) {
+        val intent = Intent(from)
+        intent.putExtra("messageName", messageName)
+
+        notificationLiveData.sendNotification(intent)
     }
 
     public fun getNotificationLiveData(): NotificationLiveData? {

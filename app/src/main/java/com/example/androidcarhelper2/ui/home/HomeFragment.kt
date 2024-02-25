@@ -39,7 +39,7 @@ class HomeFragment : Fragment() {
 
     // This property is only valid between onCreateView and
     // onDestroyView.
-    private val binding get() = _binding!!
+    private val binding get() = _binding
 
     private var radioStatusLogs = ArrayList<String>()
 
@@ -71,18 +71,22 @@ class HomeFragment : Fragment() {
         }
 
         override fun getView(i: Int, view: View, viewGroup: ViewGroup): View {
-            val inflater = LayoutInflater.from(binding.root.context)
+            if (binding != null) {
+                val inflater = LayoutInflater.from(binding!!.root.context)
 
-            var vi = view
-            if (view == null) {
-                vi = inflater.inflate(android.R.layout.simple_list_item_1, null)
-                vi.setPadding(0, 0, 0, 0)
+                var vi = view
+                if (view == null) {
+                    vi = inflater.inflate(android.R.layout.simple_list_item_1, null)
+                    vi.setPadding(0, 0, 0, 0)
+                }
+                val tv = vi.findViewById<View>(android.R.id.text1) as TextView
+                tv.text = radioStatusLogs[i]
+                tv.setTextColor(resources.getColor(android.R.color.white))
+                tv.setPadding(0, 0, 0, 0)
+                return vi
             }
-            val tv = vi.findViewById<View>(android.R.id.text1) as TextView
-            tv.text = radioStatusLogs[i]
-            tv.setTextColor(resources.getColor(android.R.color.white))
-            tv.setPadding(0, 0, 0, 0)
-            return vi
+
+            return view
         }
     }
 
@@ -114,17 +118,18 @@ class HomeFragment : Fragment() {
             ViewModelProvider(this).get(HomeViewModel::class.java)
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
-        val root: View = binding.root
+        val root: View = binding!!.root
 
 //        val textView: TextView = binding.textHome
 //        homeViewModel.text.observe(viewLifecycleOwner) {
 //            textView.text = it
 //        }
 
-        NotificationManager.getInstance().getNotificationLiveData()?.observeForever(notificationObserver)
+        NotificationManager.getInstance().getNotificationLiveData()
+            ?.observeForever(notificationObserver)
 
 
-        mediaSessionServiceConnection = object: ServiceConnection {
+        mediaSessionServiceConnection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
 //                TODO("Not yet implemented")
                 mediaSessionService = (service as MediaSessionService.LocalBinder).getService()
@@ -136,40 +141,52 @@ class HomeFragment : Fragment() {
         }
 
         val mediaSessionServiceIntent = Intent(root.context, MediaSessionService::class.java)
-        root.context.bindService(mediaSessionServiceIntent,
-            mediaSessionServiceConnection as ServiceConnection, Context.BIND_AUTO_CREATE)
+        root.context.bindService(
+            mediaSessionServiceIntent,
+            mediaSessionServiceConnection as ServiceConnection, Context.BIND_AUTO_CREATE
+        )
 
 
-        radioPlayerServiceConnection = object: ServiceConnection {
+        radioPlayerServiceConnection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 radioPlayerService = (service as RadioPlayerService.LocalBinder).getService()
 
                 initGridView()
 
-                val activitySettings = binding.root.context.getSharedPreferences("RadiosActivity", Context.MODE_PRIVATE)
+                if (binding != null) {
+                    val activitySettings = binding!!.root.context.getSharedPreferences(
+                        "RadiosActivity",
+                        Context.MODE_PRIVATE
+                    )
 
-                val playingRadioName = activitySettings.getString("playingRadioName", "")
-                val playingRadioUrlIndex = activitySettings.getInt("playingRadioUrlIndex", -1)
+                    val playingRadioName = activitySettings.getString("playingRadioName", "")
+                    val playingRadioUrlIndex = activitySettings.getInt("playingRadioUrlIndex", -1)
 
-                Log.d(
-                    LOG_TAG,
-                    "autoplay radio: radio name $playingRadioName, url index $playingRadioUrlIndex"
-                )
+                    Log.d(
+                        LOG_TAG,
+                        "autoplay radio: radio name $playingRadioName, url index $playingRadioUrlIndex"
+                    )
 
-                if (playingRadioUrlIndex > -1 && playingRadioName != "" && !radioPlayerService?.isPlaying()!!) {
+                    if (playingRadioUrlIndex > -1 && playingRadioName != "" && !radioPlayerService?.isPlaying()!!) {
 //                    var ga: RadioGridAdapter? =
 //                        radioPlayerService?.getRadios()?.let { RadioGridAdapter(context, it) }
 
-                    val radio =
-                        radioGridAdapter!!.getItemByName(activitySettings.getString("playingRadioName", ""))
+                        val radio =
+                            radioGridAdapter!!.getItemByName(
+                                activitySettings.getString(
+                                    "playingRadioName",
+                                    ""
+                                )
+                            )
 
-                    if (radio != null) {
-                        radioPlayerService?.play(radio, playingRadioUrlIndex)
-                    } else {
-                        Log.d(LOG_TAG, "autoplay radio not found")
-                    }
+                        if (radio != null) {
+                            radioPlayerService?.play(radio, playingRadioUrlIndex)
+                        } else {
+                            Log.d(LOG_TAG, "autoplay radio not found")
+                        }
 
 //                    ga = null
+                    }
                 }
             }
 
@@ -179,8 +196,10 @@ class HomeFragment : Fragment() {
         }
 
         val radioPlayerServiceIntent = Intent(root.context, RadioPlayerService::class.java)
-        root.context.bindService(radioPlayerServiceIntent,
-            radioPlayerServiceConnection as ServiceConnection, Context.BIND_AUTO_CREATE)
+        root.context.bindService(
+            radioPlayerServiceIntent,
+            radioPlayerServiceConnection as ServiceConnection, Context.BIND_AUTO_CREATE
+        )
 
         root.findViewById<LinearLayout>(R.id.info_vertical_layout)?.setOnClickListener {
             val url = "https://waze.com/ul?"
@@ -194,9 +213,9 @@ class HomeFragment : Fragment() {
     }
 
     private fun initGridView() {
-        if (radioPlayerService != null) {
+        if (radioPlayerService != null && binding != null) {
             radioGridAdapter =
-                RadioGridAdapter(binding.root.context, radioPlayerService!!.getRadios())
+                RadioGridAdapter(binding!!.root.context, radioPlayerService!!.getRadios())
 
             var gridView = getGridView()
             if (gridView !== null) {
@@ -208,7 +227,7 @@ class HomeFragment : Fragment() {
 
 //                    stopPlayer()
 
-                    if(radioPlayerService != null) {
+                    if (radioPlayerService != null) {
                         val tmpRadio = adapterView.getItemAtPosition(i) as Radio?
                         var radio = radioPlayerService?.getPlayingRadio() as Radio?
 
@@ -289,9 +308,13 @@ class HomeFragment : Fragment() {
     }
 
     private fun getGridView(): GridView? {
-        val root: View = binding.root
+        if (binding != null) {
+            val root: View = binding!!.root
 
-        return root.findViewById<GridView>(R.id.grid_view)
+            return root.findViewById<GridView>(R.id.grid_view)
+        }
+
+        return null
     }
 
     private fun getGridAdapter(): RadioGridAdapter? {
@@ -299,7 +322,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateInfo() {
-        if(radioPlayerService!=null) {
+        if (radioPlayerService != null) {
             radioStatusLogs = radioPlayerService?.getPlayerStatusList()!!
         }
         radioStatusLogsAdapter.notifyDataSetChanged()
@@ -309,7 +332,7 @@ class HomeFragment : Fragment() {
         val gridView = getGridView()
         val ga = getGridAdapter()
 
-        if (gridView != null && radioPlayerService!=null) {
+        if (gridView != null && radioPlayerService != null) {
             val tmpRadio = radioPlayerService!!.getPlayingRadio()
             if (tmpRadio != null && ga != null) {
                 var radioName = tmpRadio.getName()
@@ -330,20 +353,23 @@ class HomeFragment : Fragment() {
     }
 
     private fun stopPlayer() {
-        if (radioPlayerService!=null && radioPlayerService!!.isPlaying()) {
+        if (radioPlayerService != null && radioPlayerService!!.isPlaying()) {
             radioPlayerService!!.stop()
         }
     }
 
     private fun saveRadioToActivitySettings(radioName: String, playingUrlIndex: Int) {
-        val activitySettings = binding.root.context.getSharedPreferences("RadiosActivity", Context.MODE_PRIVATE)
+        if (binding != null) {
+            val activitySettings =
+                binding!!.root.context.getSharedPreferences("RadiosActivity", Context.MODE_PRIVATE)
 
-        Log.v("RadiosActivity", "saveRadioToActivitySettings: radio name $radioName")
-        val activitySettingsEdit: SharedPreferences.Editor = activitySettings.edit()
-        activitySettingsEdit.putString("playingRadioName", radioName)
-        activitySettingsEdit.putInt("playingRadioUrlIndex", playingUrlIndex)
-        activitySettingsEdit.commit()
-        activitySettingsEdit.apply()
+            Log.v("RadiosActivity", "saveRadioToActivitySettings: radio name $radioName")
+            val activitySettingsEdit: SharedPreferences.Editor = activitySettings.edit()
+            activitySettingsEdit.putString("playingRadioName", radioName)
+            activitySettingsEdit.putInt("playingRadioUrlIndex", playingUrlIndex)
+            activitySettingsEdit.commit()
+            activitySettingsEdit.apply()
+        }
     }
 
     private fun checkInternetAccess() {
@@ -367,7 +393,7 @@ class HomeFragment : Fragment() {
                         } finally {
                             var stringColor = "#FF0000"
 
-                            if(internetAccess == true){
+                            if (internetAccess == true) {
                                 stringColor = "#00A823"
                             }
 
@@ -375,14 +401,14 @@ class HomeFragment : Fragment() {
 
                             val colorStateList = ColorStateList.valueOf(color)
 
-                            binding.root.findViewById<ImageView>(R.id.ic_network_check)?.setImageTintList(colorStateList)
+                            binding?.root?.findViewById<ImageView>(R.id.ic_network_check)?.imageTintList =
+                                colorStateList
                         }
 
                         try {
-                            if(internetAccess) {
+                            if (internetAccess) {
                                 sleep(10000)
-                            }
-                            else{
+                            } else {
                                 sleep(2000)
                             }
                         } catch (ex: Exception) {
@@ -395,18 +421,24 @@ class HomeFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
+        NotificationManager.getInstance().getNotificationLiveData()
+            ?.removeObserver(notificationObserver)
 
-        NotificationManager.getInstance().getNotificationLiveData()?.removeObserver(notificationObserver)
+        if (radioPlayerServiceConnection != null) {
+            NotificationManager.getInstance()
+                .sendNotificationMessage(LOG_TAG, "KEYCODE_MEDIA_PAUSE")
 
-        if(mediaSessionServiceConnection != null){
-            binding.root.context.unbindService(mediaSessionServiceConnection!!)
+            binding?.root?.context?.unbindService(radioPlayerServiceConnection!!)
         }
 
-        if(radioPlayerServiceConnection != null){
-            binding.root.context.unbindService(radioPlayerServiceConnection!!)
+        if (mediaSessionServiceConnection != null) {
+            binding?.root?.context?.unbindService(mediaSessionServiceConnection!!)
         }
+
+        checkInternetConnectionThread?.interrupt()
 
         _binding = null
+
+        super.onDestroyView()
     }
 }

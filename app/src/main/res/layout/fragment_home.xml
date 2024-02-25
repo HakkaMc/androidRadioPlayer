@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.home.HomeFragment">
+
+    <GridView
+        android:id="@+id/grid_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:horizontalSpacing="10dp"
+        android:numColumns="2"
+        android:paddingLeft="10dp"
+        android:paddingTop="10dp"
+        android:paddingRight="0dp"
+        android:paddingBottom="10dp"
+        android:verticalSpacing="10dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/info_vertical_layout"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/info_vertical_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="10dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+
+
+<!--            <ImageButton-->
+<!--                android:layout_width="40dp"-->
+<!--                android:layout_height="40dp"-->
+<!--                android:padding="5dp"-->
+<!--                android:scaleType="fitCenter"-->
+<!--                android:src="@drawable/ic_navigation"-->
+<!--                tools:src="@drawable/ic_navigation" />-->
+
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:id="@+id/ic_navigation"
+            android:src="@drawable/ic_navigation" />
+
+        <ImageView
+            android:id="@+id/ic_network_check"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/ic_network_check_24dp" />
+    </LinearLayout>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

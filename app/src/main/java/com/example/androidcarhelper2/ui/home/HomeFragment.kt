@@ -131,12 +131,11 @@ class HomeFragment : Fragment() {
 
         mediaSessionServiceConnection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-//                TODO("Not yet implemented")
                 mediaSessionService = (service as MediaSessionService.LocalBinder).getService()
+                loadAndPlaySavedRadio()
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
-//               TODO("Not yet implemented")
             }
         }
 
@@ -153,41 +152,7 @@ class HomeFragment : Fragment() {
 
                 initGridView()
 
-                if (binding != null) {
-                    val activitySettings = binding!!.root.context.getSharedPreferences(
-                        "RadiosActivity",
-                        Context.MODE_PRIVATE
-                    )
-
-                    val playingRadioName = activitySettings.getString("playingRadioName", "")
-                    val playingRadioUrlIndex = activitySettings.getInt("playingRadioUrlIndex", -1)
-
-                    Log.d(
-                        LOG_TAG,
-                        "autoplay radio: radio name $playingRadioName, url index $playingRadioUrlIndex"
-                    )
-
-                    if (playingRadioUrlIndex > -1 && playingRadioName != "" && !radioPlayerService?.isPlaying()!!) {
-//                    var ga: RadioGridAdapter? =
-//                        radioPlayerService?.getRadios()?.let { RadioGridAdapter(context, it) }
-
-                        val radio =
-                            radioGridAdapter!!.getItemByName(
-                                activitySettings.getString(
-                                    "playingRadioName",
-                                    ""
-                                )
-                            )
-
-                        if (radio != null) {
-                            radioPlayerService?.play(radio, playingRadioUrlIndex)
-                        } else {
-                            Log.d(LOG_TAG, "autoplay radio not found")
-                        }
-
-//                    ga = null
-                    }
-                }
+                loadAndPlaySavedRadio()
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
@@ -210,6 +175,41 @@ class HomeFragment : Fragment() {
         checkInternetAccess()
 
         return root
+    }
+
+    private fun loadAndPlaySavedRadio() {
+        if (radioPlayerService != null && mediaSessionService != null && binding != null) {
+            val activitySettings = binding!!.root.context.getSharedPreferences(
+                "RadiosActivity",
+                Context.MODE_PRIVATE
+            )
+
+            val playingRadioName = activitySettings.getString("playingRadioName", "")
+            val playingRadioUrlIndex = activitySettings.getInt("playingRadioUrlIndex", -1)
+
+            Log.d(
+                LOG_TAG,
+                "autoplay radio: radio name $playingRadioName, url index $playingRadioUrlIndex"
+            )
+
+            if (playingRadioUrlIndex > -1 && playingRadioName != "" && !radioPlayerService?.isPlaying()!!) {
+                val radio =
+                    radioGridAdapter!!.getItemByName(
+                        activitySettings.getString(
+                            "playingRadioName",
+                            ""
+                        )
+                    )
+
+                if (radio != null) {
+                    mediaSessionService?.refreshMediaSession(context)
+                    radioPlayerService?.play(radio, playingRadioUrlIndex)
+                } else {
+                    Log.d(LOG_TAG, "autoplay radio not found")
+                }
+
+            }
+        }
     }
 
     private fun initGridView() {

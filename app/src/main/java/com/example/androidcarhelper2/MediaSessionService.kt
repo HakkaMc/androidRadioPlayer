@@ -80,7 +80,7 @@ class MediaSessionService() : Service() {
     }
 
     fun refreshMediaSession(context: Context?) {
-        Log.v("MediaSessionService", "refreshMediaSession")
+        Log.v(LOG_TAG, "refreshMediaSession")
         mediaSessionCallback = null
 
         if (getMediaSession() != null) {
@@ -94,7 +94,8 @@ class MediaSessionService() : Service() {
             mediaSession = MediaSessionCompat(this, "MyMediaSession")
 
             val intent = Intent(Intent.ACTION_MEDIA_BUTTON)
-            val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+            val pendingIntent =
+                PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
             prepareMediaSessionCallback()
 
@@ -103,7 +104,7 @@ class MediaSessionService() : Service() {
             getMediaSession()?.addOnActiveChangeListener(MediaSessionCompat.OnActiveChangeListener() {
                 fun onActiveChanged() {
                     Log.v(
-                        "MediaSessionService",
+                        LOG_TAG,
                         "mediaSession - onActiveChanged | Is active: " + getMediaSession()?.isActive()
                     )
                     log("mediaSession - onActiveChanged | Is active: " + getMediaSession()?.isActive())
@@ -120,49 +121,49 @@ class MediaSessionService() : Service() {
                     args: Bundle,
                     cb: ResultReceiver
                 ) {
-                    Log.v("MediaSessionService", "MediaSession.Callback - onCommand")
+                    Log.v(LOG_TAG, "MediaSession.Callback - onCommand")
                     log("MediaSession.Callback - onCommand")
                     super.onCommand(command, args, cb)
                 }
 
                 override fun onCustomAction(action: String, extras: Bundle) {
-                    Log.v("MediaSessionService", "MediaSession.Callback - onCustomAction")
+                    Log.v(LOG_TAG, "MediaSession.Callback - onCustomAction")
                     log("MediaSession.Callback - onCustomAction")
                     super.onCustomAction(action, extras)
                 }
 
                 override fun onPrepare() {
-                    Log.v("MediaSessionService", "MediaSession.Callback - onPrepare")
+                    Log.v(LOG_TAG, "MediaSession.Callback - onPrepare")
                     log("MediaSession.Callback - onPrepare")
                     super.onPrepare()
                 }
 
                 override fun onPause() {
-                    Log.v("MediaSessionService", "MediaSession.Callback - onPause")
+                    Log.v(LOG_TAG, "MediaSession.Callback - onPause")
                     log("MediaSession.Callback - onPause")
                     super.onPause()
                 }
 
                 override fun onStop() {
-                    Log.v("MediaSessionService", "MediaSession.Callback - onStop")
+                    Log.v(LOG_TAG, "MediaSession.Callback - onStop")
                     log("MediaSession.Callback - onStop")
                     super.onStop()
                 }
 
                 override fun onPlay() {
-                    Log.v("MediaSessionService", "MediaSession.Callback - onPlay")
+                    Log.v(LOG_TAG, "MediaSession.Callback - onPlay")
                     log("MediaSession.Callback - onPlay")
                     super.onPlay()
                 }
 
                 override fun onSkipToNext() {
-                    Log.v("MediaSessionService", "MediaSession.Callback - onSkipToNext")
+                    Log.v(LOG_TAG, "MediaSession.Callback - onSkipToNext")
                     log("MediaSession.Callback - onSkipToNext")
                     super.onSkipToNext()
                 }
 
                 override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
-                    Log.v("MediaSessionService", "mediaSession - onMediaButtonEvent")
+                    Log.v(LOG_TAG, "mediaSession - onMediaButtonEvent")
                     log("mediaSession - onMediaButtonEvent")
 
                     val event =
@@ -172,13 +173,13 @@ class MediaSessionService() : Service() {
                         val keycode = event.keyCode
                         val action = event.action
 
-                    Log.v("MediaSessionService", "mediaSession - key event number " + event.action);
+                        Log.v(LOG_TAG, "mediaSession - key event number " + event.action);
 //
                         if (action == KeyEvent.ACTION_UP) {
                             when (keycode) {
                                 KeyEvent.KEYCODE_MEDIA_NEXT -> {
                                     Log.v(
-                                        "MediaSessionService",
+                                        LOG_TAG,
                                         "mediaSession - KEYCODE_MEDIA_NEXT"
                                     )
                                     log("mediaSession - KEYCODE_MEDIA_NEXT")
@@ -187,7 +188,7 @@ class MediaSessionService() : Service() {
 
                                 KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
                                     Log.v(
-                                        "MediaSessionService",
+                                        LOG_TAG,
                                         "mediaSession - KEYCODE_MEDIA_PREVIOUS"
                                     )
                                     log("mediaSession - KEYCODE_MEDIA_PREVIOUS")
@@ -196,7 +197,7 @@ class MediaSessionService() : Service() {
 
                                 KeyEvent.KEYCODE_HEADSETHOOK -> {
                                     Log.v(
-                                        "MediaSessionService",
+                                        LOG_TAG,
                                         "mediaSession - KEYCODE_HEADSETHOOK"
                                     )
                                     log("mediaSession - KEYCODE_HEADSETHOOK")
@@ -205,7 +206,7 @@ class MediaSessionService() : Service() {
 
                                 KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
                                     Log.v(
-                                        "MediaSessionService",
+                                        LOG_TAG,
                                         "mediaSession - KEYCODE_MEDIA_PLAY_PAUSE"
                                     )
                                     log("mediaSession - KEYCODE_MEDIA_PLAY_PAUSE")
@@ -214,7 +215,7 @@ class MediaSessionService() : Service() {
 
                                 KeyEvent.KEYCODE_MEDIA_PAUSE -> {
                                     Log.v(
-                                        "MediaSessionService",
+                                        LOG_TAG,
                                         "mediaSession - KEYCODE_MEDIA_PAUSE"
                                     )
                                     log("mediaSession - KEYCODE_MEDIA_PAUSE")
@@ -223,7 +224,7 @@ class MediaSessionService() : Service() {
 
                                 KeyEvent.KEYCODE_MEDIA_PLAY -> {
                                     Log.v(
-                                        "MediaSessionService",
+                                        LOG_TAG,
                                         "mediaSession - KEYCODE_MEDIA_PLAY"
                                     )
                                     log("mediaSession - KEYCODE_MEDIA_PLAY")
@@ -232,7 +233,7 @@ class MediaSessionService() : Service() {
 
                                 else -> {
                                     Log.v(
-                                        "MediaSessionService",
+                                        LOG_TAG,
                                         "mediaSession - KEYCODE_MEDIA_UNKNOWN $keycode"
                                     )
                                     log("mediaSession - KEYCODE_MEDIA_UNKNOWN $keycode")
@@ -264,56 +265,56 @@ class MediaSessionService() : Service() {
         }
 
         onAudioFocusChangeListener = OnAudioFocusChangeListener { i ->
-            Log.d("MediaSessionService", "onAudioFocusChange: $i")
+            Log.d(LOG_TAG, "onAudioFocusChange: $i")
             when (i) {
                 AudioManager.AUDIOFOCUS_GAIN -> {
-                    Log.d("MediaSessionService", "AUDIOFOCUS_GAIN")
+                    Log.d(LOG_TAG, "AUDIOFOCUS_GAIN")
                     log("AUDIOFOCUS_GAIN")
                     setMediaSessionActive(true)
                 }
 
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
-                    Log.d("MediaSessionService", "AUDIOFOCUS_GAIN_TRANSIENT")
+                    Log.d(LOG_TAG, "AUDIOFOCUS_GAIN_TRANSIENT")
                     log("AUDIOFOCUS_GAIN_TRANSIENT")
                     setMediaSessionActive(true)
                 }
 
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE -> {
-                    Log.d("MediaSessionService", "AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE")
+                    Log.d(LOG_TAG, "AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE")
                     log("AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE")
                     setMediaSessionActive(true)
                 }
 
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK -> {
-                    Log.d("MediaSessionService", "AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK")
+                    Log.d(LOG_TAG, "AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK")
                     log("AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK")
                     setMediaSessionActive(true)
                 }
 
                 AudioManager.AUDIOFOCUS_LOSS -> {
-                    Log.d("MediaSessionService", "AUDIOFOCUS_LOSS")
+                    Log.d(LOG_TAG, "AUDIOFOCUS_LOSS")
                     log("AUDIOFOCUS_LOSS")
                     setMediaSessionActive(false)
                     sendMessage("AUDIOFOCUS_LOSS")
                 }
 
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                    Log.d("MediaSessionService", "AUDIOFOCUS_LOSS_TRANSIENT")
+                    Log.d(LOG_TAG, "AUDIOFOCUS_LOSS_TRANSIENT")
                     log("AUDIOFOCUS_LOSS_TRANSIENT")
                 }
 
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                    Log.d("MediaSessionService", "AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK")
+                    Log.d(LOG_TAG, "AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK")
                     log("AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK")
                 }
 
                 AudioManager.AUDIOFOCUS_NONE -> {
-                    Log.d("MediaSessionService", "AUDIOFOCUS_NONE")
+                    Log.d(LOG_TAG, "AUDIOFOCUS_NONE")
                     log("AUDIOFOCUS_NONE")
                 }
 
                 else -> {
-                    Log.d("MediaSessionService", "AUDIOFOCUS_DEFAULT $i")
+                    Log.d(LOG_TAG, "AUDIOFOCUS_DEFAULT $i")
                     log("AUDIOFOCUS_DEFAULT $i")
                 }
             }
@@ -326,7 +327,7 @@ class MediaSessionService() : Service() {
         )
 
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-            Log.d("MediaSessionService", "requestAudioFocus: AUDIOFOCUS_REQUEST_GRANTED")
+            Log.d(LOG_TAG, "requestAudioFocus: AUDIOFOCUS_REQUEST_GRANTED")
             log("requestAudioFocus: AUDIOFOCUS_REQUEST_GRANTED")
             ret = true
             setMediaSessionActive(true)
@@ -337,12 +338,12 @@ class MediaSessionService() : Service() {
 
             NotificationManager.getInstance().sendNotificationMessage(intent)
         } else if (result == AudioManager.AUDIOFOCUS_REQUEST_FAILED) {
-            Log.d("MediaSessionService", "requestAudioFocus: AUDIOFOCUS_REQUEST_FAILED")
+            Log.d(LOG_TAG, "requestAudioFocus: AUDIOFOCUS_REQUEST_FAILED")
             log("requestAudioFocus: AUDIOFOCUS_REQUEST_FAILED")
             sendMessage("AUDIOFOCUS_REQUEST_FAILED")
         } else {
             Log.d(
-                "MediaSessionService",
+                LOG_TAG,
                 "requestAudioFocus: request audio focus failed: $result"
             )
             log("requestAudioFocus: request audio focus failed: $result")
@@ -393,7 +394,7 @@ class MediaSessionService() : Service() {
     }
 
     override fun onDestroy() {
-        Log.d("MediaSessionService", "onDestroy")
+        Log.d(LOG_TAG, "onDestroy")
 
         NotificationManager.getInstance().getNotificationLiveData()
             ?.removeObserver(notificationObserver)

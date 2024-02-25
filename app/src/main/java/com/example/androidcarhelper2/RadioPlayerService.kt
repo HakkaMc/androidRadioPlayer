@@ -16,6 +16,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Scanner
 import java.util.Stack
 
 class RadioPlayerService() : Service() {
@@ -68,30 +69,30 @@ class RadioPlayerService() : Service() {
 
                 if (receivedRequestAudioFocusId == requestAudioFocusId) {
                     requestAudioFocusId = -1
-                    Log.v("RadioPlayerService", "AUDIOFOCUS_REQUEST_GRANTED")
+                    Log.v(LOG_TAG, "AUDIOFOCUS_REQUEST_GRANTED")
                     updatePlayerStatus("AUDIOFOCUS_REQUEST_GRANTED ")
                 } else {
                     requestAudioFocusId = -2
-                    Log.v("RadioPlayerService", "AUDIOFOCUS_REQUEST_FAILED")
+                    Log.v(LOG_TAG, "AUDIOFOCUS_REQUEST_FAILED")
                     updatePlayerStatus("AUDIOFOCUS_REQUEST_FAILED ")
                 }
             }
 
             "AUDIOFOCUS_REQUEST_FAILED" -> {
                 requestAudioFocusId = -2
-                Log.v("RadioPlayerService", "AUDIOFOCUS_REQUEST_FAILED")
+                Log.v(LOG_TAG, "AUDIOFOCUS_REQUEST_FAILED")
                 updatePlayerStatus("AUDIOFOCUS_REQUEST_FAILED ")
             }
 
             "AUDIOFOCUS_LOSS" -> {
                 requestAudioFocusId = -2
-                Log.v("RadioPlayerService", "AUDIOFOCUS_LOSS")
+                Log.v(LOG_TAG, "AUDIOFOCUS_LOSS")
                 updatePlayerStatus("AUDIOFOCUS_LOSS ")
                 stopAndSaveState()
             }
 
             "KEYCODE_MEDIA_NEXT" -> {
-                Log.v("RadioPlayerService", "KEYCODE_MEDIA_NEXT")
+                Log.v(LOG_TAG, "KEYCODE_MEDIA_NEXT")
                 updatePlayerStatus("KEYCODE_MEDIA_NEXT ")
                 if (isInPlayingProcess) {
                     nextRadio()
@@ -99,7 +100,7 @@ class RadioPlayerService() : Service() {
             }
 
             "KEYCODE_MEDIA_PREVIOUS" -> {
-                Log.v("RadioPlayerService", "KEYCODE_MEDIA_PREVIOUS")
+                Log.v(LOG_TAG, "KEYCODE_MEDIA_PREVIOUS")
                 updatePlayerStatus("KEYCODE_MEDIA_PREVIOUS ")
                 if (isInPlayingProcess) {
                     previousRadio()
@@ -107,7 +108,7 @@ class RadioPlayerService() : Service() {
             }
 
             "KEYCODE_MEDIA_PAUSE" -> {
-                Log.v("RadioPlayerService", "KEYCODE_MEDIA_PAUSE")
+                Log.v(LOG_TAG, "KEYCODE_MEDIA_PAUSE")
                 updatePlayerStatus("KEYCODE_MEDIA_PAUSE ")
 
                 if (isInPlayingProcess) {
@@ -116,7 +117,7 @@ class RadioPlayerService() : Service() {
             }
 
             "KEYCODE_MEDIA_PLAY" -> {
-                Log.v("RadioPlayerService", "KEYCODE_MEDIA_PLAY")
+                Log.v(LOG_TAG, "KEYCODE_MEDIA_PLAY")
                 updatePlayerStatus("KEYCODE_MEDIA_PLAY ")
 
                 if (!isInPlayingProcess && playingRadio != null) {
@@ -182,7 +183,7 @@ class RadioPlayerService() : Service() {
             when (what) {
                 MediaPlayer.MEDIA_INFO_BUFFERING_START -> {
                     Log.d(
-                        "RadioPlayerService",
+                        LOG_TAG,
                         "MEDIA_INFO_BUFFERING_START"
                     )
 
@@ -191,7 +192,7 @@ class RadioPlayerService() : Service() {
 
                 MediaPlayer.MEDIA_INFO_BUFFERING_END -> {
                     Log.d(
-                        "RadioPlayerService",
+                        LOG_TAG,
                         "MEDIA_INFO_BUFFERING_END"
                     )
 
@@ -200,7 +201,7 @@ class RadioPlayerService() : Service() {
 
                 MediaPlayer.MEDIA_INFO_METADATA_UPDATE -> {
                     Log.d(
-                        "RadioPlayerService",
+                        LOG_TAG,
                         "MEDIA_INFO_METADATA_UPDATE"
                     )
                     updatePlayerStatus("metadata_update")
@@ -208,34 +209,34 @@ class RadioPlayerService() : Service() {
 
                 MediaPlayer.MEDIA_INFO_NOT_SEEKABLE -> {
                     Log.d(
-                        "RadioPlayerService",
+                        LOG_TAG,
                         "MEDIA_INFO_NOT_SEEKABLE"
                     )
                 }
 
                 MediaPlayer.MEDIA_INFO_BAD_INTERLEAVING -> {
                     Log.d(
-                        "RadioPlayerService",
+                        LOG_TAG,
                         "MEDIA_INFO_BAD_INTERLEAVING"
                     )
                 }
 
                 MediaPlayer.MEDIA_INFO_AUDIO_NOT_PLAYING -> {
                     Log.d(
-                        "RadioPlayerService",
+                        LOG_TAG,
                         "MEDIA_INFO_AUDIO_NOT_PLAYING"
                     )
                 }
 
                 MediaPlayer.MEDIA_INFO_UNKNOWN -> {
                     Log.d(
-                        "RadioPlayerService",
+                        LOG_TAG,
                         "MEDIA_INFO_UNKNOWN"
                     )
                 }
 
                 else -> {
-                    Log.d("RadioPlayerService", "Unknown info state: $what")
+                    Log.d(LOG_TAG, "Unknown info state: $what")
                 }
             }
 
@@ -243,7 +244,7 @@ class RadioPlayerService() : Service() {
         }
 
         player.setOnCompletionListener {
-            Log.d("RadioPlayerService", "onCompletion")
+            Log.d(LOG_TAG, "onCompletion")
 
             if (player != null) {
                 if (player.isPlaying) {
@@ -263,78 +264,78 @@ class RadioPlayerService() : Service() {
         }
 
         player.setOnErrorListener { mediaPlayer, i, i1 ->
-            Log.d("RadioPlayerService", "Player error $i / $i1")
+            Log.d(LOG_TAG, "Player error $i / $i1")
 
             when (i) {
                 MediaPlayer.MEDIA_ERROR_UNKNOWN -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_UNKNOWN"
                 )
 
                 MediaPlayer.MEDIA_ERROR_SERVER_DIED -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_SERVER_DIED"
                 )
 
                 MediaPlayer.MEDIA_ERROR_IO -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_IO"
                 )
 
                 MediaPlayer.MEDIA_ERROR_MALFORMED -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_MALFORMED"
                 )
 
                 MediaPlayer.MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK"
                 )
 
                 MediaPlayer.MEDIA_ERROR_TIMED_OUT -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_TIMED_OUT"
                 )
 
                 MediaPlayer.MEDIA_ERROR_UNSUPPORTED -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_UNSUPPORTED"
                 )
             }
 
             when (i1) {
                 MediaPlayer.MEDIA_ERROR_UNKNOWN -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_UNKNOWN"
                 )
 
                 MediaPlayer.MEDIA_ERROR_SERVER_DIED -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_SERVER_DIED"
                 )
 
                 MediaPlayer.MEDIA_ERROR_IO -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_IO"
                 )
 
                 MediaPlayer.MEDIA_ERROR_MALFORMED -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_MALFORMED"
                 )
 
                 MediaPlayer.MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK"
                 )
 
                 MediaPlayer.MEDIA_ERROR_TIMED_OUT -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_TIMED_OUT"
                 )
 
                 MediaPlayer.MEDIA_ERROR_UNSUPPORTED -> Log.e(
-                    "RadioPlayerService",
+                    LOG_TAG,
                     "player.setOnErrorListener - MEDIA_ERROR_UNSUPPORTED"
                 )
             }
@@ -345,7 +346,7 @@ class RadioPlayerService() : Service() {
         }
 
         player.setOnSeekCompleteListener {
-            Log.d("RadioPlayerService", "onSeekComplete")
+            Log.d(LOG_TAG, "onSeekComplete")
 
             if (player != null) {
                 if (player.isPlaying) {
@@ -365,14 +366,14 @@ class RadioPlayerService() : Service() {
         }
 
         player.setOnBufferingUpdateListener { mediaPlayer, i ->
-            Log.d("RadioPlayerService", "Player buffering update $i")
+            Log.d(LOG_TAG, "Player buffering update $i")
             updatePlayerStatus("buffering")
         }
 
         player.setOnPreparedListener {
             player.start()
             updatePlayerStatus("playing")
-            Log.d("RadioPlayerService", "Player prepared")
+            Log.d(LOG_TAG, "Player prepared")
         }
 
         val audioAttributes = AudioAttributes.Builder()
@@ -396,7 +397,7 @@ class RadioPlayerService() : Service() {
     }
 
     fun requestAudioFocus(): Boolean {
-        Log.d("RadioPlayerService", "requestAudioFocus")
+        Log.d(LOG_TAG, "requestAudioFocus")
         var ret = false
 
 //        requestAudioFocusId2 = 0
@@ -426,11 +427,11 @@ class RadioPlayerService() : Service() {
         try {
             thread.join()
         } catch (ex: java.lang.Exception) {
-            Log.e("RadioPlayerService", "requestAudioFocus - thread.join exception: ", ex)
+            Log.e(LOG_TAG, "requestAudioFocus - thread.join exception: ", ex)
         }
 
         Log.d(
-            "RadioPlayerService",
+            LOG_TAG,
             "requestAudioFocus requestAudioFocusId: $requestAudioFocusId"
         )
 
@@ -484,7 +485,7 @@ class RadioPlayerService() : Service() {
     }
 
     fun play(radio: Radio, urlToPlayIndex: Int) {
-        Log.v("RadioPlayerService", "play")
+        Log.v(LOG_TAG, "play")
         updatePlayerStatus("playing_requested")
         stop()
 
@@ -499,7 +500,7 @@ class RadioPlayerService() : Service() {
 
                         notifyHandlers(RADIO_SOURCE_CHANGED, null)
 
-                        Log.v("RadioPlayerService", "play - preparing player")
+                        Log.v(LOG_TAG, "play - preparing player")
 
                         updatePlayerStatus("downloading")
 
@@ -515,11 +516,11 @@ class RadioPlayerService() : Service() {
                                 radio.setDecodedUrl(decodedRadioUrl, urlToPlayIndex)
                             }
                         } catch (ex: Exception) {
-                            Log.e("RadioPlayerService", "play", ex)
+                            Log.e(LOG_TAG, "play", ex)
                         }
 
                         Log.d(
-                            "RadioPlayerService",
+                            LOG_TAG,
                             "play - radioStreamUrl: $decodedRadioUrl"
                         )
 
@@ -529,7 +530,7 @@ class RadioPlayerService() : Service() {
                                 player.setDataSource(decodedRadioUrl)
                                 player.prepareAsync()
                             } catch (ex: Exception) {
-                                Log.e("RadioPlayerService", "play", ex)
+                                Log.e(LOG_TAG, "play", ex)
                                 updatePlayerStatus("error")
                                 isInPlayingProcess = false
                             }
@@ -539,7 +540,7 @@ class RadioPlayerService() : Service() {
                     } else {
                         playingRadio = null
                         playingUrlIndex = -1
-                        Log.d("RadioPlayerService", "Focus request not granted")
+                        Log.d(LOG_TAG, "Focus request not granted")
                         updatePlayerStatus("missing permission")
                         notifyHandlers(RADIO_SOURCE_CHANGED, null)
                     }
@@ -635,13 +636,12 @@ class RadioPlayerService() : Service() {
                         urlConnection.connect()
 
                         if (urlConnection.responseCode == HttpURLConnection.HTTP_OK) {
-                            val `in`: InputStream = BufferedInputStream(urlConnection.inputStream)
-                            val reader = BufferedReader(InputStreamReader(`in`))
-                            var line: String?
-
-                            while (reader.readLine().also { line = it } != null) {
-                                result.append(line)
+                            val result = java.lang.StringBuilder()
+                            val scanner = Scanner(urlConnection.getInputStream())
+                            while (scanner.hasNext()) {
+                                result.append(scanner.nextLine())
                             }
+                            scanner.close()
 
                             val jsonObject = JSONObject(result.toString())
 
@@ -653,7 +653,7 @@ class RadioPlayerService() : Service() {
                         }
                     } catch (e: java.lang.Exception) {
                         println("decodeRadioUrlThreadId: $decodeRadioUrlThreadId")
-                        Log.e("RadioPlayerService", "getRadioStreamUrl: " + e.message)
+                        Log.e(LOG_TAG, "getRadioStreamUrl: " + e.message)
                         try {
                             sleep(2000)
                         } catch (ex: java.lang.Exception) {

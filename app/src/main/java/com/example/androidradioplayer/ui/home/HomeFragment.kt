@@ -32,6 +32,7 @@ import com.example.androidradioplayer.RadioPlayerService
 import com.example.androidradioplayer.databinding.FragmentHomeBinding
 import java.net.InetAddress
 
+
 class HomeFragment : Fragment() {
     private val LOG_TAG = "HomeFragment"
 
@@ -175,6 +176,13 @@ class HomeFragment : Fragment() {
         checkInternetAccess()
 
         return root
+    }
+
+    // Hack due to Android 7.1
+    override fun onResume() {
+        super.onResume()
+
+        updateGridviewColors()
     }
 
     private fun loadAndPlaySavedRadio() {
@@ -401,8 +409,10 @@ class HomeFragment : Fragment() {
 
                             val colorStateList = ColorStateList.valueOf(color)
 
-                            binding?.root?.findViewById<ImageView>(R.id.ic_network_check)?.imageTintList =
-                                colorStateList
+                            // A wrap hack due to Android 7.1
+                            requireActivity().runOnUiThread {
+                                binding?.root?.findViewById<ImageView>(R.id.ic_network_check)?.imageTintList = colorStateList
+                            }
                         }
 
                         try {

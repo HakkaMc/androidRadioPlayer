@@ -10,6 +10,7 @@ import android.os.Binder
 import android.util.Log
 import androidx.lifecycle.Observer
 import org.json.JSONObject
+import wseemann.media.FFmpegMediaPlayer
 import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.InputStream
@@ -31,7 +32,7 @@ class RadioPlayerService() : Service() {
 
     private var audioManager: AudioManager? = null
 
-    private var player: MediaPlayer = MediaPlayer()
+    private var player = FFmpegMediaPlayer()
 
     private var requestAudioFocusId: Long = -2 // -1 granted; -2 not granted
 
@@ -375,12 +376,12 @@ class RadioPlayerService() : Service() {
             Log.d("RadioPlayerService", "Player prepared")
         }
 
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_MEDIA)
-            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-            .build()
+//        val audioAttributes = AudioAttributes.Builder()
+//            .setUsage(AudioAttributes.USAGE_MEDIA)
+//            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+//            .build()
 
-        player.setAudioAttributes(audioAttributes)
+//        player.setAudioAttributes(audioAttributes)
     }
 
     private fun updatePlayerStatus(msg: String) {
@@ -712,5 +713,7 @@ class RadioPlayerService() : Service() {
 
         NotificationManager.getInstance().getNotificationLiveData()
             ?.removeObserver(notificationObserver)
+
+        player.release()
     }
 }

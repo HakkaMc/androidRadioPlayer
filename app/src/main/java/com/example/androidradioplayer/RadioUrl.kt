@@ -1,4 +1,4 @@
-package com.example.androidcarhelper2
+package com.example.androidradioplayer
 
 class RadioUrl(var url: String, var description: String) {
     var id = ""

@@ -1,13 +1,10 @@
-package com.example.androidcarhelper2
+package com.example.androidradioplayer
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
-import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
-import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -17,12 +14,8 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
-import com.example.androidcarhelper2.databinding.ActivityMainBinding
+import com.example.androidradioplayer.databinding.ActivityMainBinding
 import com.google.android.material.navigation.NavigationView
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.util.regex.Pattern
-import java.net.InetAddress
 
 class MainActivity : AppCompatActivity() {
     private val LOG_TAG = "MainActivity"

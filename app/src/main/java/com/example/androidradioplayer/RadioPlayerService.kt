@@ -1,4 +1,4 @@
-package com.example.androidcarhelper2
+package com.example.androidradioplayer
 
 import android.app.Service
 import android.content.Context
@@ -10,10 +10,6 @@ import android.os.Binder
 import android.util.Log
 import androidx.lifecycle.Observer
 import org.json.JSONObject
-import java.io.BufferedInputStream
-import java.io.BufferedReader
-import java.io.InputStream
-import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Scanner

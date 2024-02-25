@@ -1,4 +1,4 @@
-package com.example.androidcarhelper2
+package com.example.androidradioplayer
 
 class Radio(name: String, private var iconName: String, private var type: String) {
     private var name = name

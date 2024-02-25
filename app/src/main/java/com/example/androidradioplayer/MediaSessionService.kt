@@ -1,13 +1,9 @@
-package com.example.androidcarhelper2
+package com.example.androidradioplayer
 
 import android.app.PendingIntent
 import android.app.Service
-import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.AudioManager.OnAudioFocusChangeListener
 import android.os.Binder
@@ -19,7 +15,6 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
 import android.view.KeyEvent
 import androidx.lifecycle.Observer
-import androidx.media.session.MediaButtonReceiver
 
 
 class MediaSessionService() : Service() {

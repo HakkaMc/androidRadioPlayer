@@ -1,4 +1,4 @@
-package com.example.androidcarhelper2.ui.home
+package com.example.androidradioplayer.ui.home
 
 import android.content.ComponentName
 import android.content.Context
@@ -23,13 +23,13 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
-import com.example.androidcarhelper2.MediaSessionService
-import com.example.androidcarhelper2.NotificationManager
-import com.example.androidcarhelper2.R
-import com.example.androidcarhelper2.Radio
-import com.example.androidcarhelper2.RadioGridAdapter
-import com.example.androidcarhelper2.RadioPlayerService
-import com.example.androidcarhelper2.databinding.FragmentHomeBinding
+import com.example.androidradioplayer.MediaSessionService
+import com.example.androidradioplayer.NotificationManager
+import com.example.androidradioplayer.R
+import com.example.androidradioplayer.Radio
+import com.example.androidradioplayer.RadioGridAdapter
+import com.example.androidradioplayer.RadioPlayerService
+import com.example.androidradioplayer.databinding.FragmentHomeBinding
 import java.net.InetAddress
 
 class HomeFragment : Fragment() {

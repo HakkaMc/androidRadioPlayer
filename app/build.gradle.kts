@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.androidcarhelper2"
+    namespace = "com.example.androidradioplayer"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.androidcarhelper2"
+        applicationId = "com.example.androidradioplayer"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

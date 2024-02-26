@@ -20,6 +20,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.TextView
+import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
@@ -174,6 +175,13 @@ class HomeFragment : Fragment() {
         }
 
         checkInternetAccess()
+
+        root.findViewById<ToggleButton>(R.id.toggleButton).setOnClickListener { view->
+            if(radioPlayerService!=null) {
+                radioPlayerService?.changeBufferVersion((view as ToggleButton).isChecked)
+
+            }
+        }
 
         return root
     }
@@ -434,9 +442,10 @@ class HomeFragment : Fragment() {
         NotificationManager.getInstance().getNotificationLiveData()
             ?.removeObserver(notificationObserver)
 
-        if (radioPlayerServiceConnection != null) {
-            NotificationManager.getInstance()
-                .sendNotificationMessage(LOG_TAG, "KEYCODE_MEDIA_PAUSE")
+        checkInternetConnectionThread?.interrupt()
+
+        if (radioPlayerServiceConnection != null && radioPlayerService != null) {
+            radioPlayerService?.stop()
 
             binding?.root?.context?.unbindService(radioPlayerServiceConnection!!)
         }
@@ -444,8 +453,6 @@ class HomeFragment : Fragment() {
         if (mediaSessionServiceConnection != null) {
             binding?.root?.context?.unbindService(mediaSessionServiceConnection!!)
         }
-
-        checkInternetConnectionThread?.interrupt()
 
         _binding = null
 

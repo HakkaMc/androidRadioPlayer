@@ -35,16 +35,6 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-
-
-<!--            <ImageButton-->
-<!--                android:layout_width="40dp"-->
-<!--                android:layout_height="40dp"-->
-<!--                android:padding="5dp"-->
-<!--                android:scaleType="fitCenter"-->
-<!--                android:src="@drawable/ic_navigation"-->
-<!--                tools:src="@drawable/ic_navigation" />-->
-
         <ImageView
             android:layout_width="80dp"
             android:layout_height="80dp"
@@ -56,6 +46,15 @@
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:src="@drawable/ic_network_check_24dp" />
+
+        <ToggleButton
+            android:id="@+id/toggleButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="ToggleButton"
+            android:textOff="Stable"
+            android:textOn="Alpha" />
     </LinearLayout>
 
 

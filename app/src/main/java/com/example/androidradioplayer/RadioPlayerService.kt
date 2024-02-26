@@ -13,6 +13,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Scanner
+import java.util.SimpleTimeZone
 import java.util.Stack
 
 class RadioPlayerService() : Service() {
@@ -47,6 +48,10 @@ class RadioPlayerService() : Service() {
     private var decodeRadioUrlThreadId = -1
 
     private var playThread: Thread? = null
+
+    private var prepareStartTime: Long = 0
+
+    private var bufferAlphaVersion = true
 
     private val notificationObserver: Observer<Intent> = Observer() {
         val messageName = it.getStringExtra("messageName")
@@ -131,33 +136,33 @@ class RadioPlayerService() : Service() {
 
     init {
         var radio = Radio("Kiss 98", "kiss98", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/kiss/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/kiss/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/kiss/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/kiss/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("Beat", "beat", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/beat/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/beat/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/beat/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/beat/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("Hey", "hey", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/hey-radio/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/hey-radio/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/hey-radio/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/hey-radio/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("Expres FM", "expresfm", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/expres/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/expres/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/expres/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/expres/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("Rock Zone", "rockzone", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/rockzone/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/rockzone/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/rockzone/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/rockzone/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("Rádio Čas Rock", "casrock", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/casrock/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/casrock/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/casrock/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/casrock/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("RFI", "rfi", "infomaniak")
@@ -208,6 +213,7 @@ class RadioPlayerService() : Service() {
                         LOG_TAG,
                         "MEDIA_INFO_NOT_SEEKABLE"
                     )
+                    updatePlayerStatus("MEDIA_INFO_NOT_SEEKABLE")
                 }
 
                 MediaPlayer.MEDIA_INFO_BAD_INTERLEAVING -> {
@@ -215,6 +221,7 @@ class RadioPlayerService() : Service() {
                         LOG_TAG,
                         "MEDIA_INFO_BAD_INTERLEAVING"
                     )
+                    updatePlayerStatus("MEDIA_INFO_BAD_INTERLEAVING")
                 }
 
                 MediaPlayer.MEDIA_INFO_AUDIO_NOT_PLAYING -> {
@@ -222,6 +229,7 @@ class RadioPlayerService() : Service() {
                         LOG_TAG,
                         "MEDIA_INFO_AUDIO_NOT_PLAYING"
                     )
+                    updatePlayerStatus("MEDIA_INFO_AUDIO_NOT_PLAYING")
                 }
 
                 MediaPlayer.MEDIA_INFO_UNKNOWN -> {
@@ -229,10 +237,12 @@ class RadioPlayerService() : Service() {
                         LOG_TAG,
                         "MEDIA_INFO_UNKNOWN"
                     )
+                    updatePlayerStatus("MEDIA_INFO_UNKNOWN")
                 }
 
                 else -> {
                     Log.d(LOG_TAG, "Unknown info state: $what")
+                    updatePlayerStatus("Unknown info state: $what")
                 }
             }
 
@@ -362,14 +372,18 @@ class RadioPlayerService() : Service() {
         }
 
         player.setOnBufferingUpdateListener { mediaPlayer, i ->
-            Log.d(LOG_TAG, "Player buffering update $i")
+            Log.v(LOG_TAG, "Player buffering update ${i}%")
             updatePlayerStatus("buffering")
         }
 
         player.setOnPreparedListener {
+            var now = System.currentTimeMillis()
+
             player.start()
+
             updatePlayerStatus("playing")
-            Log.d(LOG_TAG, "Player prepared")
+
+            Log.v(LOG_TAG, "Player prepared after ${now-prepareStartTime}ms")
         }
 
         val audioAttributes = AudioAttributes.Builder()
@@ -522,9 +536,24 @@ class RadioPlayerService() : Service() {
 
                         if (decodedRadioUrl.length > 0) {
                             updatePlayerStatus("preparing")
+
                             try {
-                                player.setDataSource(decodedRadioUrl)
-                                player.prepareAsync()
+                                prepareStartTime = System.currentTimeMillis()
+
+                                if(bufferAlphaVersion) {
+                                    var dataSource = UrlStreamDataSource(decodedRadioUrl)
+
+                                    player.setDataSource(dataSource)
+                                }
+                                else{
+                                    player.setDataSource(decodedRadioUrl)
+                                }
+
+                                Log.v(LOG_TAG,"Called prepare at ${prepareStartTime}")
+                                player.prepare()
+                                Log.v(LOG_TAG,"Prepared after ${System.currentTimeMillis() -prepareStartTime}ms")
+//                                player.prepareAsync()
+
                             } catch (ex: Exception) {
                                 Log.e(LOG_TAG, "play", ex)
                                 updatePlayerStatus("error")
@@ -632,7 +661,6 @@ class RadioPlayerService() : Service() {
                         urlConnection.connect()
 
                         if (urlConnection.responseCode == HttpURLConnection.HTTP_OK) {
-                            val result = java.lang.StringBuilder()
                             val scanner = Scanner(urlConnection.getInputStream())
                             while (scanner.hasNext()) {
                                 result.append(scanner.nextLine())
@@ -687,6 +715,14 @@ class RadioPlayerService() : Service() {
         activitySettingsEdit.putInt("playingRadioUrlIndex", 0)
         activitySettingsEdit.commit()
         activitySettingsEdit.apply()
+    }
+
+    fun changeBufferVersion(value: Boolean){
+        bufferAlphaVersion = value
+        if(isPlaying() && playingRadio != null) {
+            stop()
+            play(playingRadio!!, playingUrlIndex)
+        }
     }
 
     private fun notifyHandlers(messageType: String, data: Any?) {

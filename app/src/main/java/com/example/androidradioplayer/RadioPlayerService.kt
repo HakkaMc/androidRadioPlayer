@@ -535,7 +535,7 @@ class RadioPlayerService() : Service() {
                         )
 
                         if (decodedRadioUrl.length > 0) {
-                            updatePlayerStatus("preparing")
+                            updatePlayerStatus("init data source")
 
                             try {
                                 prepareStartTime = System.currentTimeMillis()
@@ -549,9 +549,12 @@ class RadioPlayerService() : Service() {
                                     player.setDataSource(decodedRadioUrl)
                                 }
 
+                                updatePlayerStatus("preparing")
+
                                 Log.v(LOG_TAG,"Called prepare at ${prepareStartTime}")
                                 player.prepare()
                                 Log.v(LOG_TAG,"Prepared after ${System.currentTimeMillis() -prepareStartTime}ms")
+                                updatePlayerStatus("prepared")
 //                                player.prepareAsync()
 
                             } catch (ex: Exception) {

@@ -31,6 +31,7 @@ import com.example.androidradioplayer.Radio
 import com.example.androidradioplayer.RadioGridAdapter
 import com.example.androidradioplayer.RadioPlayerService
 import com.example.androidradioplayer.databinding.FragmentHomeBinding
+import org.w3c.dom.Text
 import java.net.InetAddress
 
 
@@ -176,8 +177,8 @@ class HomeFragment : Fragment() {
 
         checkInternetAccess()
 
-        root.findViewById<ToggleButton>(R.id.toggleButton).setOnClickListener { view->
-            if(radioPlayerService!=null) {
+        root.findViewById<ToggleButton>(R.id.toggleButton).setOnClickListener { view ->
+            if (radioPlayerService != null) {
                 radioPlayerService?.changeBufferVersion((view as ToggleButton).isChecked)
 
             }
@@ -395,12 +396,27 @@ class HomeFragment : Fragment() {
                     var internetAccess = false
 
                     while (true) {
+                        var responseTime: Long = 0
+
+                        // A wrap hack due to Android 7.1
+                        requireActivity().runOnUiThread {
+                            binding?.root?.findViewById<TextView>(R.id.internetResponseTime)?.text =
+                                "..."
+                        }
+
                         try {
-                            val inetAddress = InetAddress.getByName("8.8.8.8")
+                            var startTime = System.currentTimeMillis()
+                            //val inetAddress = InetAddress.getByName("8.8.8.8")
+                            val inetAddress = InetAddress.getByName("google.com")
 
                             internetAccess = inetAddress.isReachable(5000)
 
-                            Log.v(LOG_TAG, "internetAccess: ${internetAccess.toString()}")
+                            responseTime = System.currentTimeMillis() - startTime
+
+                            Log.v(
+                                LOG_TAG,
+                                "internetAccess: ${internetAccess.toString()} (${responseTime})ms"
+                            )
 
                         } catch (ex: Exception) {
                             internetAccess = false
@@ -419,7 +435,11 @@ class HomeFragment : Fragment() {
 
                             // A wrap hack due to Android 7.1
                             requireActivity().runOnUiThread {
-                                binding?.root?.findViewById<ImageView>(R.id.ic_network_check)?.imageTintList = colorStateList
+                                binding?.root?.findViewById<ImageView>(R.id.ic_network_check)?.imageTintList =
+                                    colorStateList
+
+                                binding?.root?.findViewById<TextView>(R.id.internetResponseTime)?.text =
+                                    "${responseTime} ms"
                             }
                         }
 

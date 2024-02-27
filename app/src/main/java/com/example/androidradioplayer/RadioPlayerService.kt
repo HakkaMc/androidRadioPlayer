@@ -1,19 +1,26 @@
 package com.example.androidradioplayer
 
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
+import android.content.IntentFilter
 import android.media.AudioManager
-import android.media.MediaPlayer
 import android.os.Binder
+import android.os.Handler
 import android.util.Log
 import androidx.lifecycle.Observer
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Scanner
 import java.util.Stack
+
 
 class RadioPlayerService() : Service() {
     private val LOG_TAG = "RadioPlayerService"
@@ -28,7 +35,7 @@ class RadioPlayerService() : Service() {
 
     private var audioManager: AudioManager? = null
 
-    private var player: MediaPlayer = MediaPlayer()
+    private lateinit var exoPlayer: ExoPlayer
 
     private var requestAudioFocusId: Long = -2 // -1 granted; -2 not granted
 
@@ -48,81 +55,9 @@ class RadioPlayerService() : Service() {
 
     private var playThread: Thread? = null
 
-    private val notificationObserver: Observer<Intent> = Observer() {
-        val messageName = it.getStringExtra("messageName")
+    private var prepareStartTime: Long = 0
 
-        when (messageName) {
-            "AUDIOFOCUS_REQUEST_GRANTED" -> {
-                val receivedRequestAudioFocusId =
-                    it.getLongExtra("requestAudioFocusId", -1)
-
-                Log.v(
-                    "AUDIOFOCUS_REQUEST_GRANTED",
-                    "${receivedRequestAudioFocusId} vs ${requestAudioFocusId}"
-                )
-
-//                requestAudioFocusId2 = receivedRequestAudioFocusId
-
-                if (receivedRequestAudioFocusId == requestAudioFocusId) {
-                    requestAudioFocusId = -1
-                    Log.v(LOG_TAG, "AUDIOFOCUS_REQUEST_GRANTED")
-                    updatePlayerStatus("AUDIOFOCUS_REQUEST_GRANTED ")
-                } else {
-                    requestAudioFocusId = -2
-                    Log.v(LOG_TAG, "AUDIOFOCUS_REQUEST_FAILED")
-                    updatePlayerStatus("AUDIOFOCUS_REQUEST_FAILED ")
-                }
-            }
-
-            "AUDIOFOCUS_REQUEST_FAILED" -> {
-                requestAudioFocusId = -2
-                Log.v(LOG_TAG, "AUDIOFOCUS_REQUEST_FAILED")
-                updatePlayerStatus("AUDIOFOCUS_REQUEST_FAILED ")
-            }
-
-            "AUDIOFOCUS_LOSS" -> {
-                requestAudioFocusId = -2
-                Log.v(LOG_TAG, "AUDIOFOCUS_LOSS")
-                updatePlayerStatus("AUDIOFOCUS_LOSS ")
-                stopAndSaveState()
-            }
-
-            "KEYCODE_MEDIA_NEXT" -> {
-                Log.v(LOG_TAG, "KEYCODE_MEDIA_NEXT")
-                updatePlayerStatus("KEYCODE_MEDIA_NEXT ")
-                if (isInPlayingProcess) {
-                    nextRadio()
-                }
-            }
-
-            "KEYCODE_MEDIA_PREVIOUS" -> {
-                Log.v(LOG_TAG, "KEYCODE_MEDIA_PREVIOUS")
-                updatePlayerStatus("KEYCODE_MEDIA_PREVIOUS ")
-                if (isInPlayingProcess) {
-                    previousRadio()
-                }
-            }
-
-            "KEYCODE_MEDIA_PAUSE" -> {
-                Log.v(LOG_TAG, "KEYCODE_MEDIA_PAUSE")
-                updatePlayerStatus("KEYCODE_MEDIA_PAUSE ")
-
-                if (isInPlayingProcess) {
-                    stop()
-                }
-            }
-
-            "KEYCODE_MEDIA_PLAY" -> {
-                Log.v(LOG_TAG, "KEYCODE_MEDIA_PLAY")
-                updatePlayerStatus("KEYCODE_MEDIA_PLAY ")
-
-                if (!isInPlayingProcess && playingRadio != null) {
-                    play(playingRadio!!, playingUrlIndex)
-                }
-            }
-        }
-    }
-
+    public var JSONdownloadResponseTime: Long = 0
     override fun onBind(intent: Intent) = LocalBinder()
 
     inner class LocalBinder : Binder() {
@@ -131,33 +66,33 @@ class RadioPlayerService() : Service() {
 
     init {
         var radio = Radio("Kiss 98", "kiss98", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/kiss/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/kiss/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/kiss/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/kiss/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("Beat", "beat", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/beat/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/beat/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/beat/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/beat/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("Hey", "hey", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/hey-radio/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/hey-radio/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/hey-radio/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/hey-radio/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("Expres FM", "expresfm", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/expres/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/expres/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/expres/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/expres/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("Rock Zone", "rockzone", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/rockzone/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/rockzone/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/rockzone/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/rockzone/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("Rádio Čas Rock", "casrock", "play")
-        radio.addUrl("http://api.play.cz/json/getStream/casrock/mp3/128", "128")
-        radio.addUrl("http://api.play.cz/json/getStream/casrock/mp3/64", "64")
+        radio.addUrl("https://api.play.cz/json/getStream/casrock/mp3/128", "128")
+        radio.addUrl("https://api.play.cz/json/getStream/casrock/mp3/64", "64")
         radios.add(radio)
 
         radio = Radio("RFI", "rfi", "infomaniak")
@@ -168,216 +103,96 @@ class RadioPlayerService() : Service() {
     override fun onCreate() {
         super.onCreate()
 
+        EventBus.getDefault().register(this);
+
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager?
 
-        NotificationManager.getInstance().getNotificationLiveData()
-            ?.observeForever(notificationObserver)
+        exoPlayer = ExoPlayer.Builder(this).build()
+    }
 
-        player.setOnInfoListener { mediaPlayer, what, extra ->
-            Log.v(LOG_TAG, "setOnInfoListener: ${what}")
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val applicationId = applicationContext.applicationInfo.packageName
+        return super.onStartCommand(intent, flags, startId)
+    }
+    @Subscribe
+    public fun onEvent(event: MessageEvent) {
+        Log.v(LOG_TAG, "onEvent: ${event.getMessageName()}")
 
-            when (what) {
-                MediaPlayer.MEDIA_INFO_BUFFERING_START -> {
-                    Log.d(
-                        LOG_TAG,
-                        "MEDIA_INFO_BUFFERING_START"
+        val it = event.message
+        val messageName = event.getMessageName()
+
+        if (it != null) {
+            when (messageName) {
+                "AUDIOFOCUS_REQUEST_GRANTED" -> {
+                    val receivedRequestAudioFocusId =
+                        it.getLongExtra("requestAudioFocusId", -1)
+
+                    Log.v(
+                        "AUDIOFOCUS_REQUEST_GRANTED",
+                        "${receivedRequestAudioFocusId} vs ${requestAudioFocusId}"
                     )
 
-                    updatePlayerStatus("buffering_start")
+//                requestAudioFocusId2 = receivedRequestAudioFocusId
+
+                    if (receivedRequestAudioFocusId == requestAudioFocusId) {
+                        requestAudioFocusId = -1
+                        Log.v(LOG_TAG, "AUDIOFOCUS_REQUEST_GRANTED")
+                        updatePlayerStatus("AUDIOFOCUS_REQUEST_GRANTED ")
+                    } else {
+                        requestAudioFocusId = -2
+                        Log.v(LOG_TAG, "AUDIOFOCUS_REQUEST_FAILED")
+                        updatePlayerStatus("AUDIOFOCUS_REQUEST_FAILED ")
+                    }
                 }
 
-                MediaPlayer.MEDIA_INFO_BUFFERING_END -> {
-                    Log.d(
-                        LOG_TAG,
-                        "MEDIA_INFO_BUFFERING_END"
-                    )
-
-                    updatePlayerStatus("buffering_end")
+                "AUDIOFOCUS_REQUEST_FAILED" -> {
+                    requestAudioFocusId = -2
+                    Log.v(LOG_TAG, "AUDIOFOCUS_REQUEST_FAILED")
+                    updatePlayerStatus("AUDIOFOCUS_REQUEST_FAILED ")
                 }
 
-                MediaPlayer.MEDIA_INFO_METADATA_UPDATE -> {
-                    Log.d(
-                        LOG_TAG,
-                        "MEDIA_INFO_METADATA_UPDATE"
-                    )
-                    updatePlayerStatus("metadata_update")
+                "AUDIOFOCUS_LOSS" -> {
+                    requestAudioFocusId = -2
+                    Log.v(LOG_TAG, "AUDIOFOCUS_LOSS")
+                    updatePlayerStatus("AUDIOFOCUS_LOSS ")
+                    stopAndSaveState()
                 }
 
-                MediaPlayer.MEDIA_INFO_NOT_SEEKABLE -> {
-                    Log.d(
-                        LOG_TAG,
-                        "MEDIA_INFO_NOT_SEEKABLE"
-                    )
+                "KEYCODE_MEDIA_NEXT" -> {
+                    Log.v(LOG_TAG, "KEYCODE_MEDIA_NEXT")
+                    updatePlayerStatus("KEYCODE_MEDIA_NEXT ")
+                    if (isInPlayingProcess) {
+                        nextRadio()
+                    }
                 }
 
-                MediaPlayer.MEDIA_INFO_BAD_INTERLEAVING -> {
-                    Log.d(
-                        LOG_TAG,
-                        "MEDIA_INFO_BAD_INTERLEAVING"
-                    )
+                "KEYCODE_MEDIA_PREVIOUS" -> {
+                    Log.v(LOG_TAG, "KEYCODE_MEDIA_PREVIOUS")
+                    updatePlayerStatus("KEYCODE_MEDIA_PREVIOUS ")
+                    if (isInPlayingProcess) {
+                        previousRadio()
+                    }
                 }
 
-                MediaPlayer.MEDIA_INFO_AUDIO_NOT_PLAYING -> {
-                    Log.d(
-                        LOG_TAG,
-                        "MEDIA_INFO_AUDIO_NOT_PLAYING"
-                    )
+                "KEYCODE_MEDIA_PAUSE" -> {
+                    Log.v(LOG_TAG, "KEYCODE_MEDIA_PAUSE")
+                    updatePlayerStatus("KEYCODE_MEDIA_PAUSE ")
+
+                    if (isInPlayingProcess) {
+                        stop()
+                    }
                 }
 
-                MediaPlayer.MEDIA_INFO_UNKNOWN -> {
-                    Log.d(
-                        LOG_TAG,
-                        "MEDIA_INFO_UNKNOWN"
-                    )
-                }
+                "KEYCODE_MEDIA_PLAY" -> {
+                    Log.v(LOG_TAG, "KEYCODE_MEDIA_PLAY")
+                    updatePlayerStatus("KEYCODE_MEDIA_PLAY ")
 
-                else -> {
-                    Log.d(LOG_TAG, "Unknown info state: $what")
+                    if (!isInPlayingProcess && playingRadio != null) {
+                        play(playingRadio!!, playingUrlIndex)
+                    }
                 }
             }
-
-            false
         }
-
-        player.setOnCompletionListener {
-            Log.d(LOG_TAG, "onCompletion")
-
-            if (player != null) {
-                if (player.isPlaying) {
-                    player.stop()
-                }
-
-                player.reset()
-
-                if (playingRadio != null) {
-                    play(playingRadio!!, playingUrlIndex)
-                } else {
-                    updatePlayerStatus("track_end")
-                }
-            } else {
-                updatePlayerStatus("track_end")
-            }
-        }
-
-        player.setOnErrorListener { mediaPlayer, i, i1 ->
-            Log.d(LOG_TAG, "Player error $i / $i1")
-
-            when (i) {
-                MediaPlayer.MEDIA_ERROR_UNKNOWN -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_UNKNOWN"
-                )
-
-                MediaPlayer.MEDIA_ERROR_SERVER_DIED -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_SERVER_DIED"
-                )
-
-                MediaPlayer.MEDIA_ERROR_IO -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_IO"
-                )
-
-                MediaPlayer.MEDIA_ERROR_MALFORMED -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_MALFORMED"
-                )
-
-                MediaPlayer.MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK"
-                )
-
-                MediaPlayer.MEDIA_ERROR_TIMED_OUT -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_TIMED_OUT"
-                )
-
-                MediaPlayer.MEDIA_ERROR_UNSUPPORTED -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_UNSUPPORTED"
-                )
-            }
-
-            when (i1) {
-                MediaPlayer.MEDIA_ERROR_UNKNOWN -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_UNKNOWN"
-                )
-
-                MediaPlayer.MEDIA_ERROR_SERVER_DIED -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_SERVER_DIED"
-                )
-
-                MediaPlayer.MEDIA_ERROR_IO -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_IO"
-                )
-
-                MediaPlayer.MEDIA_ERROR_MALFORMED -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_MALFORMED"
-                )
-
-                MediaPlayer.MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK"
-                )
-
-                MediaPlayer.MEDIA_ERROR_TIMED_OUT -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_TIMED_OUT"
-                )
-
-                MediaPlayer.MEDIA_ERROR_UNSUPPORTED -> Log.e(
-                    LOG_TAG,
-                    "player.setOnErrorListener - MEDIA_ERROR_UNSUPPORTED"
-                )
-            }
-            updatePlayerStatus("reset")
-            mediaPlayer.reset()
-
-            false
-        }
-
-        player.setOnSeekCompleteListener {
-            Log.d(LOG_TAG, "onSeekComplete")
-
-            if (player != null) {
-                if (player.isPlaying) {
-                    player.stop()
-                }
-
-                player.reset()
-
-                if (playingRadio != null) {
-                    play(playingRadio!!, playingUrlIndex)
-                } else {
-                    updatePlayerStatus("seek_end")
-                }
-            } else {
-                updatePlayerStatus("seek_end")
-            }
-        }
-
-        player.setOnBufferingUpdateListener { mediaPlayer, i ->
-            Log.d(LOG_TAG, "Player buffering update $i")
-            updatePlayerStatus("buffering")
-        }
-
-        player.setOnPreparedListener {
-            player.start()
-            updatePlayerStatus("playing")
-            Log.d(LOG_TAG, "Player prepared")
-        }
-
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_MEDIA)
-            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-            .build()
-
-        player.setAudioAttributes(audioAttributes)
     }
 
     private fun updatePlayerStatus(msg: String) {
@@ -389,14 +204,13 @@ class RadioPlayerService() : Service() {
             playerStatusList =
                 java.util.ArrayList<String>(playerStatusList.subList(indexFrom, indexTo))
         }
-        notifyHandlers(RADIO_STATUS_CHANGED, null)
+        notifyHandlers(RADIO_STATUS_CHANGED, msg)
     }
 
     fun requestAudioFocus(): Boolean {
         Log.d(LOG_TAG, "requestAudioFocus")
         var ret = false
 
-//        requestAudioFocusId2 = 0
         requestAudioFocusId = System.currentTimeMillis()
         val originalRequestAudioFocusId = requestAudioFocusId
 
@@ -404,12 +218,12 @@ class RadioPlayerService() : Service() {
         intent.putExtra("messageName", "REQUEST_AUDIOFOCUS")
         intent.putExtra("requestAudioFocusId", requestAudioFocusId)
 
-        NotificationManager.getInstance().sendNotificationMessage(intent)
+        EventBus.getDefault().post(MessageEvent(intent));
 
         val thread: Thread = object : Thread() {
             override fun run() {
                 var i = 0
-                while (requestAudioFocusId == originalRequestAudioFocusId && i < 50){
+                while (requestAudioFocusId == originalRequestAudioFocusId && i < 50) {
                     ++i
                     try {
                         sleep(100)
@@ -485,11 +299,12 @@ class RadioPlayerService() : Service() {
         updatePlayerStatus("playing_requested")
         stop()
 
-        if (player != null) {
+        if (exoPlayer != null) {
             isInPlayingProcess = true
 
             playThread = object : Thread() {
                 override fun run() {
+
                     if (requestAudioFocus()) {
                         playingRadio = radio
                         playingUrlIndex = urlToPlayIndex
@@ -498,16 +313,13 @@ class RadioPlayerService() : Service() {
 
                         Log.v(LOG_TAG, "play - preparing player")
 
-                        updatePlayerStatus("downloading")
-
                         try {
                             if (radio.getType() === "infomaniak") {
                                 decodedRadioUrl = radio.getUrls()[0].url
-                            }
-                            else if(radio.getDecodedUrls().get(urlToPlayIndex) != "") {
+                            } else if (radio.getDecodedUrls().get(urlToPlayIndex) != "") {
                                 decodedRadioUrl = radio.getDecodedUrls().get(urlToPlayIndex)
-                            }
-                            else {
+                            } else {
+                                updatePlayerStatus("downloading")
                                 getRadioStreamUrl(radio.getUrls()[urlToPlayIndex].url)?.join()
                                 radio.setDecodedUrl(decodedRadioUrl, urlToPlayIndex)
                             }
@@ -515,16 +327,37 @@ class RadioPlayerService() : Service() {
                             Log.e(LOG_TAG, "play", ex)
                         }
 
-                        Log.d(
-                            LOG_TAG,
-                            "play - radioStreamUrl: $decodedRadioUrl"
-                        )
-
                         if (decodedRadioUrl.length > 0) {
-                            updatePlayerStatus("preparing")
+                            Log.d(
+                                LOG_TAG,
+                                "play - radioStreamUrl: $decodedRadioUrl"
+                            )
+
                             try {
-                                player.setDataSource(decodedRadioUrl)
-                                player.prepareAsync()
+                                prepareStartTime = System.currentTimeMillis()
+
+                                val handler = Handler(exoPlayer.applicationLooper)
+
+                                handler.post(Runnable {
+                                    val mediaItem = MediaItem.fromUri(decodedRadioUrl)
+                                    exoPlayer.setMediaItem(mediaItem)
+
+                                    updatePlayerStatus("preparing")
+
+                                    exoPlayer.prepare()
+                                    var preparedTime =
+                                        System.currentTimeMillis() - prepareStartTime
+
+                                    updatePlayerStatus("prepared")
+                                    Log.v(
+                                        LOG_TAG,
+                                        "Player prepared after ${preparedTime}ms"
+                                    )
+                                    notifyHandlers("PLAYER_PREPARED", preparedTime.toString())
+
+                                    exoPlayer.play()
+                                    updatePlayerStatus("playing")
+                                })
                             } catch (ex: Exception) {
                                 Log.e(LOG_TAG, "play", ex)
                                 updatePlayerStatus("error")
@@ -532,17 +365,21 @@ class RadioPlayerService() : Service() {
                             }
                         } else {
                             updatePlayerStatus("error")
+                            isInPlayingProcess = false
                         }
                     } else {
+                        isInPlayingProcess = false
                         playingRadio = null
                         playingUrlIndex = -1
+
                         Log.d(LOG_TAG, "Focus request not granted")
                         updatePlayerStatus("missing permission")
+
                         notifyHandlers(RADIO_SOURCE_CHANGED, null)
                     }
                 }
             }
-            getPlayThread()?.start()
+            (playThread as Thread).start()
         } else {
             updatePlayerStatus("player_is_NULL")
         }
@@ -561,28 +398,22 @@ class RadioPlayerService() : Service() {
                 }
             }
         }
+
         if (playThread != null) {
-            getPlayThread()?.interrupt()
+            playThread?.interrupt()
         }
+
         decodedRadioUrl = ""
-        try {
-            if (player != null) {
-                if (player.isPlaying) {
-                    player.stop()
-                }
-                player.reset()
+
+        if (exoPlayer != null) {
+            if (exoPlayer.isPlaying) {
+                exoPlayer.stop()
             }
-            isInPlayingProcess = false
             updatePlayerStatus("stopped")
-        } catch (ex: Exception) {
-            updatePlayerStatus("stopping_exception: " + System.currentTimeMillis())
         }
+
         decodeRadioUrlThreadId = -1
         requestAudioFocusId = -2
-    }
-
-    private fun getPlayThread(): Thread? {
-        return playThread
     }
 
     private fun getDecodeRadioUrlThreadId(): Int {
@@ -619,6 +450,8 @@ class RadioPlayerService() : Service() {
                     var urlConnection: HttpURLConnection? = null
 
                     try {
+                        var startTime = System.currentTimeMillis()
+
                         val url = URL(playCZurl)
                         urlConnection = url.openConnection() as HttpURLConnection
                         urlConnection.requestMethod = "GET"
@@ -631,8 +464,11 @@ class RadioPlayerService() : Service() {
                         urlConnection.doOutput = true
                         urlConnection.connect()
 
+                        JSONdownloadResponseTime = System.currentTimeMillis() - startTime
+                        Log.v(LOG_TAG, "JSON downloading took ${JSONdownloadResponseTime}ms")
+                        notifyHandlers("JSON_DOWNLOADED", JSONdownloadResponseTime.toString())
+
                         if (urlConnection.responseCode == HttpURLConnection.HTTP_OK) {
-                            val result = java.lang.StringBuilder()
                             val scanner = Scanner(urlConnection.getInputStream())
                             while (scanner.hasNext()) {
                                 result.append(scanner.nextLine())
@@ -689,24 +525,28 @@ class RadioPlayerService() : Service() {
         activitySettingsEdit.apply()
     }
 
-    private fun notifyHandlers(messageType: String, data: Any?) {
+    private fun notifyHandlers(messageType: String, data: String?) {
         val intent = Intent("from-radio-player-service")
         intent.putExtra("messageName", messageType)
+        if (!data.isNullOrEmpty()) {
+            intent.putExtra("data", data)
+        }
 
-        NotificationManager.getInstance().sendNotificationMessage(intent)
+        EventBus.getDefault().post(MessageEvent(intent));
     }
+
 
     fun destroy() {
         stop()
-        if (player != null) {
-            player.release()
+
+        if (exoPlayer != null) {
+            exoPlayer.release()
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
 
-        NotificationManager.getInstance().getNotificationLiveData()
-            ?.removeObserver(notificationObserver)
+        EventBus.getDefault().unregister(this);
     }
 }

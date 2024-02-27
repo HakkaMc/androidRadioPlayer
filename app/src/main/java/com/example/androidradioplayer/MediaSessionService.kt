@@ -2,6 +2,7 @@ package com.example.androidradioplayer
 
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
@@ -15,6 +16,8 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
 import android.view.KeyEvent
 import androidx.lifecycle.Observer
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
 
 
 class MediaSessionService() : Service() {
@@ -32,8 +35,6 @@ class MediaSessionService() : Service() {
 
     private val logList = ArrayList<String>()
 
-    private val handlers = ArrayList<Handler>()
-
     private var requestAudioFocusId: Long = -1
 
     override fun onBind(intent: Intent): IBinder {
@@ -46,10 +47,10 @@ class MediaSessionService() : Service() {
 
     override fun onCreate() {
         Log.v(LOG_TAG, "onCreate")
-        audioManager = this.getSystemService(AUDIO_SERVICE) as AudioManager
 
-        NotificationManager.getInstance().getNotificationLiveData()
-            ?.observeForever(notificationObserver)
+        EventBus.getDefault().register(this);
+
+        audioManager = this.getSystemService(AUDIO_SERVICE) as AudioManager
 
         refreshMediaSession(null)
         requestAudioFocus()
@@ -62,14 +63,19 @@ class MediaSessionService() : Service() {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    private val notificationObserver: Observer<Intent> = Observer() {
-        val messageName = it.getStringExtra("messageName")
+    @Subscribe
+    public fun onEvent(event: MessageEvent) {
+        Log.v(LOG_TAG, "onEvent: ${event.getMessageName()}")
 
-        Log.v(LOG_TAG, "Broadcast message received: $messageName")
-        when (messageName) {
-            "REQUEST_AUDIOFOCUS" -> {
-                requestAudioFocusId = it.getLongExtra("requestAudioFocusId", -1)
-                requestAudioFocus()
+        val it = event.message
+        val messageName = event.getMessageName()
+
+        if(it != null) {
+            when (messageName) {
+                "REQUEST_AUDIOFOCUS" -> {
+                    requestAudioFocusId = it.getLongExtra("requestAudioFocusId", -1)
+                    requestAudioFocus()
+                }
             }
         }
     }
@@ -331,7 +337,7 @@ class MediaSessionService() : Service() {
             intent.putExtra("messageName", "AUDIOFOCUS_REQUEST_GRANTED")
             intent.putExtra("requestAudioFocusId", requestAudioFocusId)
 
-            NotificationManager.getInstance().sendNotificationMessage(intent)
+            EventBus.getDefault().post(MessageEvent(intent));
         } else if (result == AudioManager.AUDIOFOCUS_REQUEST_FAILED) {
             Log.d(LOG_TAG, "requestAudioFocus: AUDIOFOCUS_REQUEST_FAILED")
             log("requestAudioFocus: AUDIOFOCUS_REQUEST_FAILED")
@@ -354,12 +360,10 @@ class MediaSessionService() : Service() {
 
     private fun log(message: String) {
         logList.add(0, message)
-        notifyHandlers(HANDLER_LOG_CHANGED, null)
     }
 
     fun clearLog() {
         logList.clear()
-        notifyHandlers(HANDLER_LOG_CHANGED, null)
     }
 
     fun getLog(): ArrayList<String>? {
@@ -371,28 +375,14 @@ class MediaSessionService() : Service() {
         // You can also include some extra data.
 //        intent.putExtra("message", "This is my message!");
         intent.putExtra("messageName", messageName)
-        NotificationManager.getInstance().sendNotificationMessage(intent)
-    }
 
-    fun registerHandler(handler: Handler) {
-        handlers.add(handler)
-    }
-
-    fun unregisterHandler(handler: Handler) {
-        handlers.remove(handler)
-    }
-
-    private fun notifyHandlers(messageType: Int, data: Any?) {
-        for (handler in handlers) {
-            handler.obtainMessage(messageType, data).sendToTarget()
-        }
+        EventBus.getDefault().post(MessageEvent(intent));
     }
 
     override fun onDestroy() {
         Log.d(LOG_TAG, "onDestroy")
 
-        NotificationManager.getInstance().getNotificationLiveData()
-            ?.removeObserver(notificationObserver)
+        EventBus.getDefault().unregister(this);
 
         try {
             if (onAudioFocusChangeListener != null) {

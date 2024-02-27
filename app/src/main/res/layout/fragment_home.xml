@@ -35,16 +35,6 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-
-
-<!--            <ImageButton-->
-<!--                android:layout_width="40dp"-->
-<!--                android:layout_height="40dp"-->
-<!--                android:padding="5dp"-->
-<!--                android:scaleType="fitCenter"-->
-<!--                android:src="@drawable/ic_navigation"-->
-<!--                tools:src="@drawable/ic_navigation" />-->
-
         <ImageView
             android:layout_width="80dp"
             android:layout_height="80dp"
@@ -56,6 +46,33 @@
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:src="@drawable/ic_network_check_24dp" />
+
+        <TextView
+            android:id="@+id/internetResponseTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:text=""
+            android:textAlignment="center"
+            />
+
+        <TextView
+            android:id="@+id/jsonDownloadTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:text=""
+            android:textAlignment="center"
+            />
+
+        <TextView
+            android:id="@+id/playerPreparedTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:text=""
+            android:textAlignment="center"
+            />
     </LinearLayout>
 
 

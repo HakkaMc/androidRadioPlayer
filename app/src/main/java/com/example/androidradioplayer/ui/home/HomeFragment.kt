@@ -21,15 +21,16 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.example.androidradioplayer.MediaSessionService
-import com.example.androidradioplayer.NotificationManager
+import com.example.androidradioplayer.MessageEvent
 import com.example.androidradioplayer.R
 import com.example.androidradioplayer.Radio
 import com.example.androidradioplayer.RadioGridAdapter
 import com.example.androidradioplayer.RadioPlayerService
 import com.example.androidradioplayer.databinding.FragmentHomeBinding
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
 import java.net.InetAddress
 
 
@@ -91,43 +92,23 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private val notificationObserver: Observer<Intent> = Observer() {
-        val messageName = it.getStringExtra("messageName")
-
-        if (messageName != null) {
-            Log.v(LOG_TAG, messageName)
-        }
-
-        when (messageName) {
-            "RADIO_STATUS_CHANGED" -> {
-                updateInfo()
-                updateGridviewColors()
-            }
-
-            "RADIO_SOURCE_CHANGED" -> {
-                updateGridviewColors()
-            }
-        }
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+
         val homeViewModel =
             ViewModelProvider(this).get(HomeViewModel::class.java)
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding!!.root
 
+
 //        val textView: TextView = binding.textHome
 //        homeViewModel.text.observe(viewLifecycleOwner) {
 //            textView.text = it
 //        }
-
-        NotificationManager.getInstance().getNotificationLiveData()
-            ?.observeForever(notificationObserver)
 
 
         mediaSessionServiceConnection = object : ServiceConnection {
@@ -157,7 +138,6 @@ class HomeFragment : Fragment() {
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
-//                TODO("Not yet implemented")
             }
         }
 
@@ -178,11 +158,60 @@ class HomeFragment : Fragment() {
         return root
     }
 
+    override fun onStart() {
+        super.onStart()
+        EventBus.getDefault().register(this);
+    }
+
     // Hack due to Android 7.1
     override fun onResume() {
         super.onResume()
 
         updateGridviewColors()
+    }
+    @Subscribe
+    public fun onEvent(event: MessageEvent) {
+        Log.v(LOG_TAG, "onEvent: ${event.getMessageName()}")
+        val it = event.message
+
+        val messageName = event.getMessageName()
+
+        if (it != null) {
+            when (messageName) {
+                "RADIO_STATUS_CHANGED" -> {
+                    updateInfo()
+                    updateGridviewColors()
+                }
+
+                "RADIO_SOURCE_CHANGED" -> {
+                    updateGridviewColors()
+                }
+
+                "JSON_DOWNLOADED" -> {
+                    val data = it.getStringExtra("data")
+
+                    // A wrap hack due to Android 7.1
+                    requireActivity().runOnUiThread {
+                        binding?.root?.findViewById<TextView>(R.id.jsonDownloadTime)?.text =
+                            "${data} ms"
+                    }
+
+                    Log.v(LOG_TAG, "JSON_DOWNLOADED after ${data} ms")
+                }
+
+                "PLAYER_PREPARED" -> {
+                    val data = it.getStringExtra("data")
+
+                    // A wrap hack due to Android 7.1
+                    requireActivity().runOnUiThread {
+                        binding?.root?.findViewById<TextView>(R.id.playerPreparedTime)?.text =
+                            "${data} ms"
+                    }
+
+                    Log.v(LOG_TAG, "PLAYER_PREPARED after ${data} ms")
+                }
+            }
+        }
     }
 
     private fun loadAndPlaySavedRadio() {
@@ -387,12 +416,27 @@ class HomeFragment : Fragment() {
                     var internetAccess = false
 
                     while (true) {
+                        var responseTime: Long = 0
+
+                        // A wrap hack due to Android 7.1
+                        requireActivity().runOnUiThread {
+                            binding?.root?.findViewById<TextView>(R.id.internetResponseTime)?.text =
+                                "..."
+                        }
+
                         try {
-                            val inetAddress = InetAddress.getByName("8.8.8.8")
+                            var startTime = System.currentTimeMillis()
+                            //val inetAddress = InetAddress.getByName("8.8.8.8")
+                            val inetAddress = InetAddress.getByName("google.com")
 
                             internetAccess = inetAddress.isReachable(5000)
 
-                            Log.v(LOG_TAG, "internetAccess: ${internetAccess.toString()}")
+                            responseTime = System.currentTimeMillis() - startTime
+
+                            Log.v(
+                                LOG_TAG,
+                                "internetAccess: ${internetAccess.toString()} (${responseTime})ms"
+                            )
 
                         } catch (ex: Exception) {
                             internetAccess = false
@@ -411,7 +455,11 @@ class HomeFragment : Fragment() {
 
                             // A wrap hack due to Android 7.1
                             requireActivity().runOnUiThread {
-                                binding?.root?.findViewById<ImageView>(R.id.ic_network_check)?.imageTintList = colorStateList
+                                binding?.root?.findViewById<ImageView>(R.id.ic_network_check)?.imageTintList =
+                                    colorStateList
+
+                                binding?.root?.findViewById<TextView>(R.id.internetResponseTime)?.text =
+                                    "${responseTime} ms"
                             }
                         }
 
@@ -430,13 +478,16 @@ class HomeFragment : Fragment() {
         }
     }
 
-    override fun onDestroyView() {
-        NotificationManager.getInstance().getNotificationLiveData()
-            ?.removeObserver(notificationObserver)
+    override fun onStop() {
+        EventBus.getDefault().unregister(this);
+        super.onStop()
+    }
 
-        if (radioPlayerServiceConnection != null) {
-            NotificationManager.getInstance()
-                .sendNotificationMessage(LOG_TAG, "KEYCODE_MEDIA_PAUSE")
+    override fun onDestroyView() {
+        checkInternetConnectionThread?.interrupt()
+
+        if (radioPlayerServiceConnection != null && radioPlayerService != null) {
+            radioPlayerService?.stop()
 
             binding?.root?.context?.unbindService(radioPlayerServiceConnection!!)
         }
@@ -444,8 +495,6 @@ class HomeFragment : Fragment() {
         if (mediaSessionServiceConnection != null) {
             binding?.root?.context?.unbindService(mediaSessionServiceConnection!!)
         }
-
-        checkInternetConnectionThread?.interrupt()
 
         _binding = null
 

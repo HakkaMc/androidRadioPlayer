@@ -56,14 +56,23 @@
             android:textAlignment="center"
             />
 
-        <ToggleButton
-            android:id="@+id/toggleButton"
+        <TextView
+            android:id="@+id/jsonDownloadTime"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:checked="true"
-            android:text="ToggleButton"
-            android:textOff="Stable"
-            android:textOn="Alpha" />
+            android:textColor="@color/white"
+            android:text=""
+            android:textAlignment="center"
+            />
+
+        <TextView
+            android:id="@+id/playerPreparedTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:text=""
+            android:textAlignment="center"
+            />
     </LinearLayout>
 
 

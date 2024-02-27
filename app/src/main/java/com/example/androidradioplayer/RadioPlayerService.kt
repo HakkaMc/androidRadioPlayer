@@ -47,7 +47,7 @@ class RadioPlayerService() : Service() {
 
     private var isInPlayingProcess = false
 
-    private var playerStatusList = java.util.ArrayList<String>()
+//    private var playerStatusList = java.util.ArrayList<String>()
 
     private var decodedRadioUrl = ""
 
@@ -197,13 +197,13 @@ class RadioPlayerService() : Service() {
 
     private fun updatePlayerStatus(msg: String) {
         playerStatus = msg
-        playerStatusList.add(0, msg)
-        if (playerStatusList.size > 50) {
-            val indexFrom = 0
-            val indexTo = Math.min(playerStatusList.size, 50)
-            playerStatusList =
-                java.util.ArrayList<String>(playerStatusList.subList(indexFrom, indexTo))
-        }
+//        playerStatusList.add(0, msg)
+//        if (playerStatusList.size > 50) {
+//            val indexFrom = 0
+//            val indexTo = Math.min(playerStatusList.size, 50)
+//            playerStatusList =
+//                java.util.ArrayList<String>(playerStatusList.subList(indexFrom, indexTo))
+//        }
         notifyHandlers(RADIO_STATUS_CHANGED, msg)
     }
 
@@ -316,12 +316,20 @@ class RadioPlayerService() : Service() {
                         try {
                             if (radio.getType() === "infomaniak") {
                                 decodedRadioUrl = radio.getUrls()[0].url
-                            } else if (radio.getDecodedUrls().get(urlToPlayIndex) != "") {
-                                decodedRadioUrl = radio.getDecodedUrls().get(urlToPlayIndex)
-                            } else {
-                                updatePlayerStatus("downloading")
-                                getRadioStreamUrl(radio.getUrls()[urlToPlayIndex].url)?.join()
-                                radio.setDecodedUrl(decodedRadioUrl, urlToPlayIndex)
+                            }else {
+                                if (radio.getDecodedUrls().getOrNull(playingUrlIndex)?.isNullOrEmpty() == false) {
+                                    decodedRadioUrl = radio.getDecodedUrls().get(playingUrlIndex)
+                                } else {
+                                    if(playingUrlIndex > (radio.getUrls().size-1)){
+                                        playingUrlIndex = 0
+                                    }
+
+                                    if (radio.getUrls().getOrNull(playingUrlIndex) != null) {
+                                        updatePlayerStatus("downloading")
+                                        getRadioStreamUrl(radio.getUrls()[playingUrlIndex].url)?.join()
+                                        radio.setDecodedUrl(decodedRadioUrl, playingUrlIndex)
+                                    }
+                                }
                             }
                         } catch (ex: Exception) {
                             Log.e(LOG_TAG, "play", ex)
@@ -357,6 +365,8 @@ class RadioPlayerService() : Service() {
 
                                     exoPlayer.play()
                                     updatePlayerStatus("playing")
+                                    isInPlayingProcess = true
+                                    notifyHandlers("RADIO_STATUS_CHANGED", "")
                                 })
                             } catch (ex: Exception) {
                                 Log.e(LOG_TAG, "play", ex)
@@ -414,6 +424,7 @@ class RadioPlayerService() : Service() {
 
         decodeRadioUrlThreadId = -1
         requestAudioFocusId = -2
+        isInPlayingProcess = false
     }
 
     private fun getDecodeRadioUrlThreadId(): Int {
@@ -428,9 +439,9 @@ class RadioPlayerService() : Service() {
         return radios
     }
 
-    fun getPlayerStatusList(): java.util.ArrayList<String> {
-        return playerStatusList
-    }
+//    fun getPlayerStatusList(): java.util.ArrayList<String> {
+//        return playerStatusList
+//    }
 
     fun getPlayerStatus(): String {
         return playerStatus
@@ -484,7 +495,6 @@ class RadioPlayerService() : Service() {
                             continueDownloading = false
                         }
                     } catch (e: java.lang.Exception) {
-                        println("decodeRadioUrlThreadId: $decodeRadioUrlThreadId")
                         Log.e(LOG_TAG, "getRadioStreamUrl: " + e.message)
                         try {
                             sleep(2000)

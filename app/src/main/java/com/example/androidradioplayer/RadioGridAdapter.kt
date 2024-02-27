@@ -140,7 +140,7 @@ class RadioGridAdapter(private var context: Context?, private var radios: ArrayL
                 )
                 imgView.setImageResource(resourceId)
             } catch (ex: Exception) {
-                println("getView exception: $ex")
+                Log.e(LOG_TAG, "getView exception", ex)
             }
             return item
         }

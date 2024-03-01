@@ -5,6 +5,11 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <uses-feature android:name="android.car.capability.MEDIA_BROWSER" />
+
+<!--  https://developer.android.com/training/cars/testing/dhu  -->
+<!--  https://www.devicemag.com/android-auto-set-default-music-player/  -->
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -32,6 +37,15 @@
             android:enabled="true"
             android:exported="true"
             android:stopWithTask="true" />
+
+        <service android:name=".MyMediaBrowserService"
+            android:label="MyMediaBrowserService"
+            android:exported="true"
+            >
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
 
         <activity
             android:launchMode="singleInstance"

@@ -1,5 +1,6 @@
 package com.example.androidradioplayer.ui.home
 
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -21,6 +22,7 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import com.example.androidradioplayer.MediaSessionService
 import com.example.androidradioplayer.MessageEvent
@@ -43,8 +45,6 @@ class HomeFragment : Fragment() {
     // onDestroyView.
     private val binding get() = _binding
 
-    private var radioStatusLogs = ArrayList<String>()
-
     private var urlToPlayIndex = 0
 
     private var radioGridAdapter: RadioGridAdapter? = null
@@ -59,50 +59,22 @@ class HomeFragment : Fragment() {
 
     private var radioPlayerServiceConnection: ServiceConnection? = null
 
-    private var radioStatusLogsAdapter = object : BaseAdapter() {
-        override fun getCount(): Int {
-            return radioStatusLogs.size
-        }
-
-        override fun getItem(i: Int): Any {
-            return radioStatusLogs[i]
-        }
-
-        override fun getItemId(i: Int): Long {
-            return i.toLong()
-        }
-
-        override fun getView(i: Int, view: View, viewGroup: ViewGroup): View {
-            if (binding != null) {
-                val inflater = LayoutInflater.from(binding!!.root.context)
-
-                var vi = view
-                if (view == null) {
-                    vi = inflater.inflate(android.R.layout.simple_list_item_1, null)
-                    vi.setPadding(0, 0, 0, 0)
-                }
-                val tv = vi.findViewById<View>(android.R.id.text1) as TextView
-                tv.text = radioStatusLogs[i]
-                tv.setTextColor(resources.getColor(android.R.color.white))
-                tv.setPadding(0, 0, 0, 0)
-                return vi
-            }
-
-            return view
-        }
-    }
+    private var activity: FragmentActivity? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        Log.v(LOG_TAG, "onCreateView")
 
         val homeViewModel =
             ViewModelProvider(this).get(HomeViewModel::class.java)
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding!!.root
+
+        activity = requireActivity()
 
 
 //        val textView: TextView = binding.textHome
@@ -160,15 +132,28 @@ class HomeFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
+
+        Log.v(LOG_TAG, "onStart")
+
+        activity = requireActivity()
+
+        updateInfo()
+        updateGridviewColors()
+
         EventBus.getDefault().register(this);
     }
 
-    // Hack due to Android 7.1
     override fun onResume() {
         super.onResume()
 
+        Log.v(LOG_TAG, "onResume")
+
+        activity = requireActivity()
+
+        updateInfo()
         updateGridviewColors()
     }
+
     @Subscribe
     public fun onEvent(event: MessageEvent) {
         Log.v(LOG_TAG, "onEvent: ${event.getMessageName()}")
@@ -178,8 +163,20 @@ class HomeFragment : Fragment() {
 
         if (it != null) {
             when (messageName) {
-                "RADIO_STATUS_CHANGED" -> {
+                "MEDIA_SESSION_CHANGED" -> {
                     updateInfo()
+                }
+
+                "AUDIOFOCUS_REQUEST_GRANTED" -> {
+                    updateInfo()
+                }
+
+                "AUDIOFOCUS_LOSS" -> {
+                    updateInfo()
+                }
+
+                "RADIO_STATUS_CHANGED" -> {
+//                    updateInfo()
                     updateGridviewColors()
                 }
 
@@ -191,9 +188,11 @@ class HomeFragment : Fragment() {
                     val data = it.getStringExtra("data")
 
                     // A wrap hack due to Android 7.1
-                    requireActivity().runOnUiThread {
+
+                    getActv()?.runOnUiThread {
                         binding?.root?.findViewById<TextView>(R.id.jsonDownloadTime)?.text =
                             "${data} ms"
+
                     }
 
                     Log.v(LOG_TAG, "JSON_DOWNLOADED after ${data} ms")
@@ -203,9 +202,11 @@ class HomeFragment : Fragment() {
                     val data = it.getStringExtra("data")
 
                     // A wrap hack due to Android 7.1
-                    requireActivity().runOnUiThread {
+
+                    getActv()?.runOnUiThread {
                         binding?.root?.findViewById<TextView>(R.id.playerPreparedTime)?.text =
                             "${data} ms"
+
                     }
 
                     Log.v(LOG_TAG, "PLAYER_PREPARED after ${data} ms")
@@ -276,26 +277,22 @@ class HomeFragment : Fragment() {
                             if (radio.getId().equals(tmpRadio.getId())) {
                                 radio = tmpRadio
                                 if (radioPlayerService!!.isPlaying()) {
-                                    println("Stop")
                                     radioPlayerService?.stop()
                                     urlToPlayIndex = 0
                                     saveRadioToActivitySettings("", 0)
                                 } else {
-                                    println("Continue")
                                     mediaSessionService?.refreshMediaSession(context)
                                     radioPlayerService!!.play(radio, urlToPlayIndex)
                                     saveRadioToActivitySettings(radio.getName(), urlToPlayIndex)
                                 }
                             } else {
-                                println("Change radio")
                                 radio = tmpRadio
                                 mediaSessionService?.refreshMediaSession(context)
                                 radioPlayerService!!.play(radio, 0)
                                 urlToPlayIndex = 0
-                                saveRadioToActivitySettings(radio.getName(), 0)
+                                saveRadioToActivitySettings(radio.getName(), urlToPlayIndex)
                             }
                         } else if (tmpRadio != null) {
-                            println("Brand new radio")
                             radio = tmpRadio
                             mediaSessionService?.refreshMediaSession(context)
                             radioPlayerService?.play(radio, i)
@@ -359,10 +356,17 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateInfo() {
-        if (radioPlayerService != null) {
-            radioStatusLogs = radioPlayerService?.getPlayerStatusList()!!
+        if (mediaSessionService != null) {
+            var isSessionActive = mediaSessionService?.getIsSessionActive() == true
+
+            // A wrap hack due to Android 7.1
+
+            getActv()?.runOnUiThread {
+                binding?.root?.findViewById<TextView>(R.id.mSessionFocused)?.text =
+                    if (isSessionActive == true) "true" else "false"
+            }
+
         }
-        radioStatusLogsAdapter.notifyDataSetChanged()
     }
 
     private fun updateGridviewColors() {
@@ -372,18 +376,22 @@ class HomeFragment : Fragment() {
         if (gridView != null && radioPlayerService != null) {
             val tmpRadio = radioPlayerService!!.getPlayingRadio()
             if (tmpRadio != null && ga != null) {
-                var radioName = tmpRadio.getName()
-                val radioIndex: Int = ga.getItemIndexByName(radioName)
-                ga.setSelectedRadioIndex(radioIndex)
-                ga.setRadioStatus(radioPlayerService!!.getPlayerStatus())
-                gridView.smoothScrollToPosition(radioIndex)
-                gridView.invalidateViews()
+                // A wrap hack due to Android 7.1
+                getActv()?.runOnUiThread {
+                    var radioName = tmpRadio.getName()
+                    val radioIndex: Int = ga.getItemIndexByName(radioName)
+                    ga.setSelectedRadioIndex(radioIndex)
+                    ga.setRadioStatus(radioPlayerService!!.getPlayerStatus())
+                    gridView.smoothScrollToPosition(radioIndex)
+                    gridView.invalidateViews()
+
+                }
             } else {
-                Log.d("RadiosActivity", "updateGridviewColors: radio objekt je null")
+                Log.d(LOG_TAG, "updateGridviewColors: radio objekt je null")
             }
         } else {
             Log.d(
-                "RadiosActivity",
+                LOG_TAG,
                 "updateGridviewColors: gridView nebo radioPlayerService je null"
             )
         }
@@ -395,12 +403,27 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun getActv(): FragmentActivity? {
+        try {
+            if (activity?.isDestroyed != true) {
+                return activity
+            }
+        } catch (ex: Exception) {
+            return null
+        }
+
+        return null
+    }
+
     private fun saveRadioToActivitySettings(radioName: String, playingUrlIndex: Int) {
         if (binding != null) {
             val activitySettings =
                 binding!!.root.context.getSharedPreferences("RadiosActivity", Context.MODE_PRIVATE)
 
-            Log.v("RadiosActivity", "saveRadioToActivitySettings: radio name $radioName")
+            Log.v(
+                LOG_TAG,
+                "saveRadioToActivitySettings: radio name $radioName, index $playingUrlIndex"
+            )
             val activitySettingsEdit: SharedPreferences.Editor = activitySettings.edit()
             activitySettingsEdit.putString("playingRadioName", radioName)
             activitySettingsEdit.putInt("playingRadioUrlIndex", playingUrlIndex)
@@ -419,15 +442,16 @@ class HomeFragment : Fragment() {
                         var responseTime: Long = 0
 
                         // A wrap hack due to Android 7.1
-                        requireActivity().runOnUiThread {
+
+                        getActv()?.runOnUiThread {
                             binding?.root?.findViewById<TextView>(R.id.internetResponseTime)?.text =
                                 "..."
                         }
 
                         try {
                             var startTime = System.currentTimeMillis()
-                            //val inetAddress = InetAddress.getByName("8.8.8.8")
-                            val inetAddress = InetAddress.getByName("google.com")
+                            val inetAddress = InetAddress.getByName("8.8.8.8")
+//                            val inetAddress = InetAddress.getByName("google.com")
 
                             internetAccess = inetAddress.isReachable(5000)
 
@@ -454,12 +478,14 @@ class HomeFragment : Fragment() {
                             val colorStateList = ColorStateList.valueOf(color)
 
                             // A wrap hack due to Android 7.1
-                            requireActivity().runOnUiThread {
+
+                            getActv()?.runOnUiThread {
                                 binding?.root?.findViewById<ImageView>(R.id.ic_network_check)?.imageTintList =
                                     colorStateList
 
                                 binding?.root?.findViewById<TextView>(R.id.internetResponseTime)?.text =
                                     "${responseTime} ms"
+
                             }
                         }
 
@@ -478,12 +504,23 @@ class HomeFragment : Fragment() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+
+        Log.v(LOG_TAG, "onPause")
+    }
+
     override fun onStop() {
+        Log.v(LOG_TAG, "onStop")
+
         EventBus.getDefault().unregister(this);
+
         super.onStop()
     }
 
     override fun onDestroyView() {
+        Log.v(LOG_TAG, "onDestroyView")
+
         checkInternetConnectionThread?.interrupt()
 
         if (radioPlayerServiceConnection != null && radioPlayerService != null) {

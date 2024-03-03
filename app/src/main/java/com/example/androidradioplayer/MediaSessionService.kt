@@ -37,6 +37,8 @@ class MediaSessionService() : Service() {
 
     private var requestAudioFocusId: Long = -1
 
+    private var requestMediaButtonsIntentId: Int = 0
+
     override fun onBind(intent: Intent): IBinder {
         return binder
     }
@@ -88,15 +90,16 @@ class MediaSessionService() : Service() {
             if (getMediaSession()?.isActive()!!) {
                 getMediaSession()?.setActive(false)
             }
+            mediaSession?.release()
             mediaSession = null
         }
 
-        if (context != null) {
             mediaSession = MediaSessionCompat(this, "MyMediaSession")
 
             val intent = Intent(Intent.ACTION_MEDIA_BUTTON)
+            requestMediaButtonsIntentId += 1
             val pendingIntent =
-                PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+                PendingIntent.getBroadcast(this, requestMediaButtonsIntentId, intent, PendingIntent.FLAG_IMMUTABLE)
 
             prepareMediaSessionCallback()
 
@@ -110,7 +113,6 @@ class MediaSessionService() : Service() {
                     )
                 }
             })
-        }
     }
 
     private fun prepareMediaSessionCallback() {
@@ -238,6 +240,9 @@ class MediaSessionService() : Service() {
         if (mediaSession != null) {
             isSessionActive = value
             mediaSession?.setActive(value)
+        }
+        else {
+            Log.w(LOG_TAG, "setMediaSessionActive warning: Media session is null!")
         }
     }
 
